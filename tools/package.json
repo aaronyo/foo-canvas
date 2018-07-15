@@ -1,0 +1,9 @@
+{
+  "name": "tools",
+  "version": "0.0.1",
+  "description": "Tools useful for bublup-connect",
+  "private": true,
+  "dependencies": {
+    "prettier": "^1.13.7"
+  }
+}
