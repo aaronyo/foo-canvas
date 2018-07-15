@@ -14,7 +14,8 @@
     "url": "https://cvgellhorn@github.com/cvgellhorn/webpack-boilerplate.git"
   },
   "dependencies": {
-    "lodash": "4.17.10"
+    "lodash": "4.17.10",
+    "pixi.js": "^4.8.1"
   },
   "devDependencies": {
     "babel-core": "6.26.3",
