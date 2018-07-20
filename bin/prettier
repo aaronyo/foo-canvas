@@ -1,4 +1,4 @@
 #!/bin/bash
 my_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-$my_dir/../tools/node_modules/.bin/prettier --trailing-comma all --single-quote $@
+$my_dir/../tools/node_modules/.bin/prettier --tab-width 2 --trailing-comma all --single-quote $@
