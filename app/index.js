@@ -46,9 +46,13 @@ function keyboard(keyCode) {
 }
 
 const viewport = {
-  width: 800,
-  height: 600,
+  width: 1200,
+  height: 900,
 };
+
+const minZoom = 0.3;
+const maxZoom = 0.8;
+const zoomMargin = 300;
 
 viewport.center = {
   x: viewport.width / 2,
@@ -57,8 +61,8 @@ viewport.center = {
 
 function makeScene() {
   const universe = {
-    width: 3200,
-    height: 2400,
+    width: viewport.width / minZoom,
+    height: viewport.height / minZoom,
   };
 
   return {
@@ -268,8 +272,41 @@ function main() {
         background.tilePosition.x = viewport.width / 2 - scene.ship.x;
         background.tilePosition.y = viewport.height / 2 - scene.ship.y;
 
-        enemy.x = scene.enemy.x - scene.ship.x + viewport.width / 2;
-        enemy.y = scene.enemy.y - scene.ship.y + viewport.height / 2;
+        let enemyOffsetX = scene.enemy.x - scene.ship.x;
+        let enemyDistanceX = Math.abs(enemyOffsetX);
+        if (enemyDistanceX > scene.universe.width / 2) {
+          // shorter distance
+          enemyDistanceX = scene.universe.width - enemyDistanceX;
+          enemyOffsetX = enemyOffsetX > 0 ? 0 - enemyDistanceX : enemyDistanceX;
+        }
+
+        let enemyOffsetY = scene.enemy.y - scene.ship.y;
+        let enemyDistanceY = Math.abs(enemyOffsetY);
+        let centerY = scene.ship.y;
+        if (enemyDistanceY > scene.universe.height / 2) {
+          // shorter distance
+          enemyDistanceY = scene.universe.height - enemyDistanceY;
+          enemyOffsetY = enemyOffsetY > 0 ? 0 - enemyDistanceY : enemyDistanceY;
+        }
+
+        const scale = Math.max(
+          Math.min(
+            viewport.width / 2 / (enemyDistanceX + zoomMargin),
+            viewport.height / 2 / (enemyDistanceY + zoomMargin),
+            maxZoom,
+          ),
+          minZoom,
+        );
+
+        enemy.x = enemyOffsetX * scale + viewport.width / 2;
+        enemy.y = enemyOffsetY * scale + viewport.height / 2;
+
+        // background.tileScale.x = scale;
+        // background.tileScale.y = scale;
+        enemy.scale.x = 0.5 * scale;
+        enemy.scale.y = 0.5 * scale;
+        ship.scale.x = 0.5 * scale;
+        ship.scale.y = 0.5 * scale;
 
         // if (Math.abs(
         //   ((scene.ship.x - scene.enemy.x) < viewport.width / 2)
