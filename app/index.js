@@ -302,12 +302,12 @@ function main() {
         enemy.y = enemyOffsetY * scale + viewport.height / 2;
 
         background.tilePosition.x =
-          (background.tilePosition.x + scene.ship.xVelocity) * scale * 1;
+          background.tilePosition.x - scene.ship.xVelocity;
         background.tilePosition.y =
-          (background.tilePosition.y + scene.ship.yVelocity) * scale * 1;
+          background.tilePosition.y - scene.ship.yVelocity;
 
-        background.tileScale.x = 4 * scale;
-        background.tileScale.y = 4 * scale;
+        background.tileScale.x = 1.5;
+        background.tileScale.y = 1.5;
         enemy.scale.x = 0.5 * scale;
         enemy.scale.y = 0.5 * scale;
         ship.scale.x = 0.5 * scale;
