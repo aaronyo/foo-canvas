@@ -167,24 +167,26 @@ function makeKeyState() {
 function makeBackground({ width, height }) {
   const texture = PIXI.Texture.fromImage('assets/space.png');
   const bg = new PIXI.TilingSprite(texture, width, height);
+  bg.tilePosition.x = 0;
+  bg.tilePosition.y = 0;
   return [bg, texture];
 
-  const gfx = new PIXI.Graphics();
-  for (let i = 0; i <= width; i += 50) {
-    const lwidth = i % width === 0 ? 10 : 1;
-    gfx
-      .lineStyle(lwidth, 0xaaaaff + i * 100, 1, 1)
-      .moveTo(i, 0)
-      .lineTo(i, height);
-  }
-  for (let i = 0; i <= height; i += 50) {
-    const lwidth = i % height === 0 ? 10 : 1;
-    gfx
-      .lineStyle(lwidth, 0xaaaaff + i * 100, 1, 0)
-      .moveTo(0, i)
-      .lineTo(width, i);
-  }
-  return gfx;
+  // const gfx = new PIXI.Graphics();
+  // for (let i = 0; i <= width; i += 50) {
+  //   const lwidth = i % width === 0 ? 10 : 1;
+  //   gfx
+  //     .lineStyle(lwidth, 0xaaaaff + i * 100, 1, 1)
+  //     .moveTo(i, 0)
+  //     .lineTo(i, height);
+  // }
+  // for (let i = 0; i <= height; i += 50) {
+  //   const lwidth = i % height === 0 ? 10 : 1;
+  //   gfx
+  //     .lineStyle(lwidth, 0xaaaaff + i * 100, 1, 0)
+  //     .moveTo(0, i)
+  //     .lineTo(width, i);
+  // }
+  // return gfx;
 }
 
 function handleUniverseEdge(background, ship, coord, dim) {
@@ -269,9 +271,6 @@ function main() {
           scene,
         );
 
-        background.tilePosition.x = viewport.width / 2 - scene.ship.x;
-        background.tilePosition.y = viewport.height / 2 - scene.ship.y;
-
         let enemyOffsetX = scene.enemy.x - scene.ship.x;
         let enemyDistanceX = Math.abs(enemyOffsetX);
         if (enemyDistanceX > scene.universe.width / 2) {
@@ -301,8 +300,13 @@ function main() {
         enemy.x = enemyOffsetX * scale + viewport.width / 2;
         enemy.y = enemyOffsetY * scale + viewport.height / 2;
 
-        // background.tileScale.x = scale;
-        // background.tileScale.y = scale;
+        background.tilePosition.x =
+          (background.tilePosition.x + scene.ship.xVelocity) * scale * 1;
+        background.tilePosition.y =
+          (background.tilePosition.y + scene.ship.yVelocity) * scale * 1;
+
+        background.tileScale.x = 4 * scale;
+        background.tileScale.y = 4 * scale;
         enemy.scale.x = 0.5 * scale;
         enemy.scale.y = 0.5 * scale;
         ship.scale.x = 0.5 * scale;
