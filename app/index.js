@@ -165,7 +165,7 @@ function makeKeyState() {
 }
 
 function makeBackground({ width, height }) {
-  const texture = PIXI.Texture.fromImage('assets/space.png');
+  const texture = PIXI.Texture.from('assets/space.png');
   const bg = new PIXI.TilingSprite(texture, width, height);
   bg.tilePosition.x = 0;
   bg.tilePosition.y = 0;
@@ -222,7 +222,8 @@ function main() {
   let scene = makeScene();
   const keyState = makeKeyState();
   // load the texture we need
-  PIXI.loader
+  const loader = new PIXI.Loader();
+  loader
     .add('ship', 'assets/ship-color.png')
     .add('enemy', 'assets/ship-enemy.png')
     .load((loader, resources) => {
