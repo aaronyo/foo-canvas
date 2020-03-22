@@ -113,7 +113,7 @@ function thrustShip(ship) {
 function rotateShip(ship, dir) {
   return {
     ...ship,
-    rotation: (2 * Math.PI + ship.rotation + 0.05 * dir) % (2 * Math.PI),
+    rotation: (ship.rotation + 0.05 * dir) % (2 * Math.PI),
   };
 }
 
