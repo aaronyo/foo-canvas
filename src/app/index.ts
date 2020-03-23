@@ -5,40 +5,10 @@ import * as PIXI from 'pixi.js';
 import shipImg from '../assets/ship-color.png';
 import enemyImg from '../assets/ship-enemy.png';
 import spaceBackground from '../assets/space.png';
+import { makeKeyState } from './keyboard';
 import * as projectionLib from './projection';
 import * as scene from './scene';
 import * as util from './util';
-
-function bindKey(
-  keyCode: number,
-  { press, release }: { press: () => void; release: () => void },
-) {
-  let isDown = false;
-  let isUp = true;
-  //The `downHandler`
-  const downHandler = (event: KeyboardEvent) => {
-    if (event.keyCode === keyCode) {
-      if (isUp && press) press();
-      isDown = true;
-      isUp = false;
-      event.preventDefault();
-    }
-  };
-
-  //The `upHandler`
-  const upHandler = (event: KeyboardEvent) => {
-    if (event.keyCode === keyCode) {
-      if (isDown && release) release();
-      isDown = false;
-      isUp = true;
-      event.preventDefault();
-    }
-  };
-
-  //Attach event listeners
-  window.addEventListener('keydown', downHandler, false);
-  window.addEventListener('keyup', upHandler, false);
-}
 
 const vpWidth = 900;
 const vpHeight = 900;
@@ -55,77 +25,12 @@ const minZoom = 0.3;
 const maxZoom = 0.7;
 const zoomMargin = 500;
 
-function makeScene() {
-  const universe = {
-    width: viewport.width / minZoom,
-    height: viewport.height / minZoom,
-  };
-
-  return {
-    universe,
-
-    ship: {
-      x: universe.width / 2,
-      y: universe.height / 2,
-      yVelocity: 0,
-      xVelocity: 0,
-      rotation: 0,
-    },
-    enemy: {
-      x: 1000,
-      y: 1000,
-    },
-  };
-}
-
-type GameScene = ReturnType<typeof makeScene>;
-
 function updateScene(
   path: string[],
   fn: (sceneItem: unknown) => unknown,
-  scn: GameScene,
+  scn: scene.GameScene,
 ) {
   return fp.set(path, fn(fp.get(path, scn)), scn);
-}
-
-function makeKeyState() {
-  const state = {
-    left: { isDown: false },
-    right: { isDown: false },
-    thrust: { isDown: false },
-  };
-
-  // arrow up
-  bindKey(38, {
-    press: () => {
-      state.thrust.isDown = true;
-    },
-    release: () => {
-      state.thrust.isDown = false;
-    },
-  });
-
-  // arrow left
-  bindKey(37, {
-    press: () => {
-      state.left.isDown = true;
-    },
-    release: () => {
-      state.left.isDown = false;
-    },
-  });
-
-  // arrow right
-  bindKey(39, {
-    press: () => {
-      state.right.isDown = true;
-    },
-    release: () => {
-      state.right.isDown = false;
-    },
-  });
-
-  return state;
 }
 
 function makeBackground({ width, height }) {
@@ -170,7 +75,7 @@ export const makeGameApp = () => {
     align: 'center',
   });
 
-  let scn = makeScene();
+  let scn = scene.initScene(viewport, minZoom);
   const keyState = makeKeyState();
   // load the texture we need
   //const loader = new PIXI.Loader();
@@ -244,7 +149,7 @@ export const makeGameApp = () => {
         )}, x:${util.round(scn.ship.x, 0)}, y:${util.round(
           scn.ship.y,
           0,
-        )}, delta: ${deltaSeconds}}
+        )}, delta: ${util.round(deltaSeconds, 4)}}
 `;
       }
 

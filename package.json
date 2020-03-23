@@ -4,9 +4,10 @@
   "description": "",
   "scripts": {
     "test": "jest",
-    "start": "npm run clean && parcel src/index.html",
+    "start": "parcel src/index.html",
+    "clean-start": "npm run clean && parcel src/index.html",
     "build": "npm run clean && parcel build src/index.html --public-url ./",
-    "build_serve": "npm run build && http-server ./dist",
+    "build-serve": "npm run build && http-server ./dist",
     "clean": "rimraf ./dist ./.cache"
   },
   "author": "Aaron Boyd",
