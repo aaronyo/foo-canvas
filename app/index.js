@@ -219,11 +219,7 @@ function main() {
           scn,
         );
 
-        const enemyDelta = projection.enemyDelta(
-          scn.universe,
-          scn.ship,
-          scn.enemy,
-        );
+        const enemyDelta = scene.enemyDelta(scn.universe, scn.ship, scn.enemy);
         const zoom = projection.zoom(viewport, enemyDelta);
 
         enemy.x = enemyDelta.x * zoom + viewport.width / 2;

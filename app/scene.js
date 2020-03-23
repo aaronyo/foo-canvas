@@ -51,3 +51,27 @@ export const updateShip = (keyState, deltaSeconds, bounds) => {
   ];
   return fp.flow(fp.filter(fp.identity, shipUpdates));
 };
+
+// With consideration for wrapping around the edges of the universe, determine
+// the minimum x and y deltas from the ship (origin) to the enemy
+export const enemyDelta = (universeDims, ship, enemy) => {
+  let deltaX = enemy.x - ship.x;
+  let distanceX = Math.abs(deltaX);
+  if (distanceX > universeDims.width / 2) {
+    // shorter distance
+    distanceX = universeDims.width - distanceX;
+    deltaX = deltaX > 0 ? 0 - distanceX : distanceX;
+  }
+
+  let deltaY = enemy.y - ship.y;
+  let distanceY = Math.abs(deltaY);
+  if (distanceY > universeDims.height / 2) {
+    // shorter distance
+    distanceY = universeDims.height - distanceY;
+    deltaY = deltaY > 0 ? 0 - distanceY : distanceY;
+  }
+  return {
+    x: deltaX,
+    y: deltaY,
+  };
+};
