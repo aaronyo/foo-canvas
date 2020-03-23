@@ -8,10 +8,7 @@ import fp from 'lodash/fp';
 import * as PIXI from 'pixi.js';
 import * as util from './util';
 import * as scene from './scene';
-
-function getCanvas() {
-  return document.getElementById('my-canvas');
-}
+import * as projectionLib from './projection';
 
 function keyboard(keyCode) {
   let key = {};
@@ -149,19 +146,6 @@ function makeBackground({ width, height }) {
   // return gfx;
 }
 
-function handleUniverseEdge(background, ship, coord, dim) {
-  if (background[coord] > 0) {
-    ship[coord] = viewport[dim] / 2 - background[coord];
-    background[coord] = 0;
-  } else if (background[coord] < viewport[dim] - background[dim]) {
-    ship[coord] =
-      viewport[dim] / 2 + (viewport[dim] - background[dim] - background[coord]);
-    background[coord] = viewport[dim] - background[dim];
-  } else {
-    ship[coord] = viewport.center[coord];
-  }
-}
-
 function main() {
   // The application will create a renderer using WebGL, if possible,
   // with a fallback to a canvas render. It will also setup the ticker
@@ -207,7 +191,7 @@ function main() {
       enemy.anchor.x = 0.5;
       enemy.anchor.y = 0.25;
       // Add the ship to the scene we are building
-      const [background, texture] = makeBackground(viewport);
+      const [background] = makeBackground(viewport);
       app.stage.addChild(background);
       app.stage.addChild(ship);
       app.stage.addChild(enemy);
@@ -217,6 +201,12 @@ function main() {
         // each frame we spin the ship around a bit
         //      ship.rotation += 0.01;
         play(delta);
+      });
+
+      const projection = projectionLib.configure({
+        minZoom,
+        maxZoom,
+        zoomMargin,
       });
 
       function play(frameDelta) {
@@ -229,34 +219,15 @@ function main() {
           scn,
         );
 
-        let enemyOffsetX = scn.enemy.x - scn.ship.x;
-        let enemyDistanceX = Math.abs(enemyOffsetX);
-        if (enemyDistanceX > scn.universe.width / 2) {
-          // shorter distance
-          enemyDistanceX = scn.universe.width - enemyDistanceX;
-          enemyOffsetX = enemyOffsetX > 0 ? 0 - enemyDistanceX : enemyDistanceX;
-        }
-
-        let enemyOffsetY = scn.enemy.y - scn.ship.y;
-        let enemyDistanceY = Math.abs(enemyOffsetY);
-        let centerY = scn.ship.y;
-        if (enemyDistanceY > scn.universe.height / 2) {
-          // shorter distance
-          enemyDistanceY = scn.universe.height - enemyDistanceY;
-          enemyOffsetY = enemyOffsetY > 0 ? 0 - enemyDistanceY : enemyDistanceY;
-        }
-
-        const scale = Math.max(
-          Math.min(
-            viewport.width / 2 / (enemyDistanceX + zoomMargin),
-            viewport.height / 2 / (enemyDistanceY + zoomMargin),
-            maxZoom,
-          ),
-          minZoom,
+        const enemyDelta = projection.enemyDelta(
+          scn.universe,
+          scn.ship,
+          scn.enemy,
         );
+        const zoom = projection.zoom(viewport, enemyDelta);
 
-        enemy.x = enemyOffsetX * scale + viewport.width / 2;
-        enemy.y = enemyOffsetY * scale + viewport.height / 2;
+        enemy.x = enemyDelta.x * zoom + viewport.width / 2;
+        enemy.y = enemyDelta.y * zoom + viewport.height / 2;
 
         background.tilePosition.x =
           background.tilePosition.x - scn.ship.xVelocity * 0.1;
@@ -265,17 +236,10 @@ function main() {
 
         background.tileScale.x = 1.5;
         background.tileScale.y = 1.5;
-        enemy.scale.x = 0.5 * scale;
-        enemy.scale.y = 0.5 * scale;
-        ship.scale.x = 0.5 * scale;
-        ship.scale.y = 0.5 * scale;
-
-        // if (Math.abs(
-        //   ((scn.ship.x - scn.enemy.x) < viewport.width / 2)
-        //     || ((scn.ship.y - scn.enemy.y) < viewport.height / 2))) {
-        // }
-        // handleUniverseEdge(background, ship, 'x', 'width');
-        // handleUniverseEdge(background, ship, 'y', 'height');
+        enemy.scale.x = 0.5 * zoom;
+        enemy.scale.y = 0.5 * zoom;
+        ship.scale.x = 0.5 * zoom;
+        ship.scale.y = 0.5 * zoom;
 
         ship.rotation = scn.ship.rotation;
         text.text = `rot: ${util.round(
