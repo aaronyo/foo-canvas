@@ -3,34 +3,41 @@ import fp from 'lodash/fp';
 import { Dimension } from './geometry';
 import { KeyState } from './keyboard';
 
-const ACCELERATION = 0.02;
+const ACCELERATION = 0.01;
 const MAX_VELOCITY = 0.01;
 const REVS_PER_SECOND = 0.5;
 
 export const initScene = () => {
   const universe = {
     width: 9,
-    height: 6,
+    height: 9,
+    center: {
+      x: 4.5,
+      y: 4.5,
+    },
   };
 
   return {
     universe,
 
     ship: {
-      x: universe.width / 2,
-      y: universe.height / 2,
-      width: 0.15,
-      height: 0.15,
+      x: universe.center.x,
+      y: universe.center.y,
+      width: 0.1,
+      height: 0.1,
       yVelocity: 0,
       xVelocity: 0,
       rotation: 0,
     },
+
     enemy: {
-      x: 4.5,
-      y: 3,
-      width: 0.15,
-      height: 0.15,
+      x: universe.center.x,
+      y: universe.center.y,
+      width: 0.1,
+      height: 0.1,
     },
+
+    fieldOfView: 1 / 2,
   };
 };
 

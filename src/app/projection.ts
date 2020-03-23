@@ -17,7 +17,7 @@ export const configure = ({
 }: Opts) => {
   const aspectRatio = universeDims.height / universeDims.width;
   const viewportHeight = viewportWidth * aspectRatio;
-  const scale = viewportWidth / universeDims.width;
+  const scale = (viewportWidth / universeDims.width) * 2;
 
   const viewport = {
     width: viewportWidth,
@@ -28,7 +28,7 @@ export const configure = ({
     },
   };
 
-  const zoom = (enmyDelta: Point) => {
+  const zoomFactor = (enmyDelta: Point) => {
     const enemyDistance = Math.sqrt(
       Math.pow(enmyDelta.x, 2) + Math.pow(enmyDelta.y, 2),
     );
@@ -40,7 +40,7 @@ export const configure = ({
   };
 
   return Object.freeze({
-    zoom,
+    zoomFactor,
     viewport,
     scale,
   });

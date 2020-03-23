@@ -5,16 +5,17 @@ import * as PIXI from 'pixi.js';
 import shipImg from '../assets/ship-color.png';
 import enemyImg from '../assets/ship-enemy.png';
 import spaceBackground from '../assets/space.png';
+import * as geometry from './geometry';
 import { makeKeyState } from './keyboard';
 import * as projectionLib from './projection';
 import * as scene from './scene';
 import * as util from './util';
 
-const VIEWPORT_WIDTH = 1200;
+const VIEWPORT_WIDTH = 900;
 
 const minZoom = 1;
 const maxZoom = 4;
-const zoomMargin = 350;
+const zoomMargin = 500;
 
 function updateScene(
   path: string[],
@@ -90,18 +91,16 @@ export const makeGameApp = () => {
       const enemy = new PIXI.Sprite(resources.enemy.texture);
 
       // Rotate around the center
+      ship.pivot.x = ship.width / 2;
+      ship.pivot.y = (ship.height * 3) / 4;
       ship.width = scn.ship.width * projection.scale;
       ship.height = scn.ship.height * projection.scale;
-      console.log('SHIP', ship.width, projection.scale, scn.ship.width);
-      ship.anchor.x = 0.5;
-      ship.anchor.y = 0.75;
-      ship.x = projection.viewport.center.x;
-      ship.y = projection.viewport.center.y;
+
+      enemy.pivot.x = enemy.width / 2;
+      enemy.pivot.y = enemy.height / 2;
       enemy.width = scn.enemy.width * projection.scale;
       enemy.height = scn.enemy.height * projection.scale;
-      enemy.anchor.x = 0.5;
-      enemy.anchor.y = 0.5;
-      // Add the ship to the scene we are building
+
       const background = makeBackground(projection.viewport);
       app.stage.addChild(background);
       app.stage.addChild(ship);
@@ -119,12 +118,38 @@ export const makeGameApp = () => {
         );
 
         const enemyDelta = scene.enemyDelta(scn.universe, scn.ship, scn.enemy);
-        const zoom = projection.zoom(enemyDelta);
+        const midpoint = geometry.midpoint(scn.ship, scn.enemy);
+        const xShift = scn.universe.center.x - midpoint.x;
+        const yShift = scn.universe.center.y - midpoint.y;
+        const zoom = projection.zoomFactor(enemyDelta);
 
         enemy.x =
-          enemyDelta.x * projection.scale * zoom + projection.viewport.center.x;
+          (scn.enemy.x + xShift) * projection.scale -
+          scn.fieldOfView * projection.viewport.width;
         enemy.y =
-          enemyDelta.y * projection.scale * zoom + projection.viewport.center.y;
+          (scn.enemy.y + yShift) * projection.scale -
+          scn.fieldOfView * projection.viewport.height;
+        ship.x =
+          (scn.ship.x + xShift) * projection.scale -
+          scn.fieldOfView * projection.viewport.width;
+        ship.y =
+          (scn.ship.y + yShift) * projection.scale -
+          scn.fieldOfView * projection.viewport.height;
+
+        Object.assign(
+          enemy,
+          geometry.zoom(zoom, projection.viewport.center, enemy),
+        );
+        Object.assign(
+          ship,
+          geometry.zoom(zoom, projection.viewport.center, ship),
+        );
+
+        console.log({
+          midpoint,
+          xShift,
+          yShift,
+        });
 
         background.tilePosition.x =
           background.tilePosition.x -
@@ -133,8 +158,8 @@ export const makeGameApp = () => {
           background.tilePosition.y -
           scn.ship.yVelocity * 0.3 * projection.scale;
 
-        background.tileScale.x = 1.5;
-        background.tileScale.y = 1.5;
+        background.scale.x = 1.5;
+        background.scale.y = 1.5;
         ship.width = scn.ship.width * projection.scale * zoom;
         ship.height = scn.ship.height * projection.scale * zoom;
         enemy.width = scn.enemy.width * projection.scale * zoom;
@@ -147,11 +172,14 @@ export const makeGameApp = () => {
         )}, xVel:${util.round(scn.ship.xVelocity, 2)}, yVel:${util.round(
           scn.ship.yVelocity,
           2,
-        )}, x:${util.round(scn.ship.x, 2)}, y:${util.round(
-          scn.ship.y,
+        )}, x:${util.round(ship.x, 2)}, y:${util.round(
+          ship.y,
           2,
         )}, ex:${util.round(enemy.x, 2)}, ey:${util.round(
           enemy.y,
+          2,
+        )}, sx:${util.round(xShift, 2)}, sy:${util.round(
+          yShift,
           2,
         )}, scale: ${util.round(projection.scale, 2)}, zoom: ${util.round(
           zoom,
