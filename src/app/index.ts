@@ -1,59 +1,59 @@
 // Load application styles
 import fp from 'lodash/fp';
 import * as PIXI from 'pixi.js';
-import * as util from './util';
-import * as scene from './scene';
-import * as projectionLib from './projection';
+
 import shipImg from '../assets/ship-color.png';
 import enemyImg from '../assets/ship-enemy.png';
 import spaceBackground from '../assets/space.png';
+import * as projectionLib from './projection';
+import * as scene from './scene';
+import * as util from './util';
 
-function keyboard(keyCode) {
-  let key = {};
-  key.code = keyCode;
-  key.isDown = false;
-  key.isUp = true;
-  key.press = undefined;
-  key.release = undefined;
+function bindKey(
+  keyCode: number,
+  { press, release }: { press: () => void; release: () => void },
+) {
+  let isDown = false;
+  let isUp = true;
   //The `downHandler`
-  key.downHandler = (event) => {
-    if (event.keyCode === key.code) {
-      if (key.isUp && key.press) key.press();
-      key.isDown = true;
-      key.isUp = false;
+  const downHandler = (event: KeyboardEvent) => {
+    if (event.keyCode === keyCode) {
+      if (isUp && press) press();
+      isDown = true;
+      isUp = false;
       event.preventDefault();
     }
   };
 
   //The `upHandler`
-  key.upHandler = (event) => {
-    if (event.keyCode === key.code) {
-      if (key.isDown && key.release) key.release();
-      key.isDown = false;
-      key.isUp = true;
+  const upHandler = (event: KeyboardEvent) => {
+    if (event.keyCode === keyCode) {
+      if (isDown && release) release();
+      isDown = false;
+      isUp = true;
       event.preventDefault();
     }
   };
 
   //Attach event listeners
-  window.addEventListener('keydown', key.downHandler.bind(key), false);
-  window.addEventListener('keyup', key.upHandler.bind(key), false);
-  return key;
+  window.addEventListener('keydown', downHandler, false);
+  window.addEventListener('keyup', upHandler, false);
 }
 
+const vpWidth = 900;
+const vpHeight = 900;
 const viewport = {
-  width: 900,
-  height: 900,
+  width: vpWidth,
+  height: vpHeight,
+  center: {
+    x: vpWidth / 2,
+    y: vpHeight / 2,
+  },
 };
 
 const minZoom = 0.3;
 const maxZoom = 0.7;
 const zoomMargin = 500;
-
-viewport.center = {
-  x: viewport.width / 2,
-  y: viewport.height / 2,
-};
 
 function makeScene() {
   const universe = {
@@ -78,7 +78,13 @@ function makeScene() {
   };
 }
 
-function updateScene(path, fn, scn) {
+type GameScene = ReturnType<typeof makeScene>;
+
+function updateScene(
+  path: string[],
+  fn: (sceneItem: unknown) => unknown,
+  scn: GameScene,
+) {
   return fp.set(path, fn(fp.get(path, scn)), scn);
 }
 
@@ -89,32 +95,35 @@ function makeKeyState() {
     thrust: { isDown: false },
   };
 
-  // Listen for frame updates
-  let left = keyboard(37); // left arrow
-  let right = keyboard(39); // right arrow
-  let thrust = keyboard(38); // up arrow
-  thrust.press = () => {
-    state.thrust.isDown = true;
-  };
-  thrust.release = () => {
-    state.thrust.isDown = false;
-  };
+  // arrow up
+  bindKey(38, {
+    press: () => {
+      state.thrust.isDown = true;
+    },
+    release: () => {
+      state.thrust.isDown = false;
+    },
+  });
 
-  left.press = () => {
-    state.left.isDown = true;
-  };
+  // arrow left
+  bindKey(37, {
+    press: () => {
+      state.left.isDown = true;
+    },
+    release: () => {
+      state.left.isDown = false;
+    },
+  });
 
-  left.release = () => {
-    state.left.isDown = false;
-  };
-
-  right.press = () => {
-    state.right.isDown = true;
-  };
-
-  right.release = () => {
-    state.right.isDown = false;
-  };
+  // arrow right
+  bindKey(39, {
+    press: () => {
+      state.right.isDown = true;
+    },
+    release: () => {
+      state.right.isDown = false;
+    },
+  });
 
   return state;
 }
@@ -124,7 +133,7 @@ function makeBackground({ width, height }) {
   const bg = new PIXI.TilingSprite(texture, width, height);
   bg.tilePosition.x = 0;
   bg.tilePosition.y = 0;
-  return [bg, texture];
+  return bg;
 
   // const gfx = new PIXI.Graphics();
   // for (let i = 0; i <= width; i += 50) {
@@ -154,7 +163,7 @@ export const makeGameApp = () => {
     resolution: 1,
   });
 
-  let text = new PIXI.Text('This is a pixi text', {
+  const text = new PIXI.Text('This is a pixi text', {
     fontFamily: 'Arial',
     fontSize: 16,
     fill: 0xff1010,
@@ -168,7 +177,7 @@ export const makeGameApp = () => {
   app.loader
     .add('ship', shipImg)
     .add('enemy', enemyImg)
-    .load((loader, resources) => {
+    .load((_loader, resources) => {
       // This creates a texture from a 'bunny.png' image
       const ship = new PIXI.Sprite(resources.ship.texture);
       const enemy = new PIXI.Sprite(resources.enemy.texture);
@@ -185,17 +194,11 @@ export const makeGameApp = () => {
       enemy.anchor.x = 0.5;
       enemy.anchor.y = 0.25;
       // Add the ship to the scene we are building
-      const [background] = makeBackground(viewport);
+      const background = makeBackground(viewport);
       app.stage.addChild(background);
       app.stage.addChild(ship);
       app.stage.addChild(enemy);
       app.stage.addChild(text);
-
-      app.ticker.add((delta) => {
-        // each frame we spin the ship around a bit
-        //      ship.rotation += 0.01;
-        play(delta);
-      });
 
       const projection = projectionLib.configure({
         minZoom,
@@ -203,12 +206,12 @@ export const makeGameApp = () => {
         zoomMargin,
       });
 
-      function play(frameDelta) {
+      function play(frameDelta: number) {
         const deltaSeconds = (1 / app.ticker.FPS) * frameDelta;
 
         //Use the ship's velocity to make it move
         scn = updateScene(
-          'ship',
+          ['ship'],
           scene.updateShip(keyState, deltaSeconds, scn.universe),
           scn,
         );
@@ -244,6 +247,12 @@ export const makeGameApp = () => {
         )}, delta: ${deltaSeconds}}
 `;
       }
+
+      app.ticker.add((delta) => {
+        // each frame we spin the ship around a bit
+        //      ship.rotation += 0.01;
+        play(delta);
+      });
     });
 
   return app;

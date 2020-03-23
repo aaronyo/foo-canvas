@@ -14,11 +14,13 @@
   "dependencies": {
     "assemble": "~0.3.11",
     "grunt": "~0.4.0",
+    "lodash": "^4.17.15",
     "pixi.js": "^5.2.1",
     "styles": "^0.2.1"
   },
   "devDependencies": {
     "@types/jest": "^24.0.23",
+    "@types/lodash": "^4.14.149",
     "@typescript-eslint/eslint-plugin": "^2.24.0",
     "@typescript-eslint/parser": "^2.24.0",
     "babel-core": "^6.26.3",
