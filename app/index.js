@@ -7,6 +7,7 @@ import 'styles/index.scss';
 import fp from 'lodash/fp';
 import * as PIXI from 'pixi.js';
 import * as util from './util';
+import * as scene from './scene';
 
 function getCanvas() {
   return document.getElementById('my-canvas');
@@ -51,8 +52,8 @@ const viewport = {
 };
 
 const minZoom = 0.3;
-const maxZoom = 0.8;
-const zoomMargin = 300;
+const maxZoom = 0.7;
+const zoomMargin = 500;
 
 viewport.center = {
   x: viewport.width / 2,
@@ -82,49 +83,8 @@ function makeScene() {
   };
 }
 
-function updateScene(path, fn, scene) {
-  return fp.set(path, fn(fp.get(path, scene)), scene);
-}
-
-function thrustShip(ship) {
-  const maxV = 10;
-  const power = 0.25;
-
-  // Create a thrust vector
-  const thrustY = -Math.cos(ship.rotation) * power;
-  const thrustX = Math.sin(ship.rotation) * power;
-
-  // Calculate the new velocity vector by adding velocity + thrust vectors
-  const yVel = ship.yVelocity + thrustY;
-  const xVel = ship.xVelocity + thrustX;
-  const vel = Math.sqrt(Math.pow(yVel, 2) + Math.pow(xVel, 2));
-
-  // Cap the maximum velocity
-  const cappedVel = vel > 0 ? Math.min(vel, maxV) : Math.max(vel, 0 - maxV);
-
-  // Recalculte x and y velocity based on the capped total velocity
-  return {
-    ...ship,
-    yVelocity: (yVel / vel) * cappedVel,
-    xVelocity: (xVel / vel) * cappedVel,
-  };
-}
-
-function rotateShip(ship, dir) {
-  return {
-    ...ship,
-    rotation: (ship.rotation + 0.05 * dir) % (2 * Math.PI),
-  };
-}
-
-function moveShip(universe, ship) {
-  return {
-    ...ship,
-    //    y: ship.y + ship.yVelocity,
-    //    x: ship.x + ship.xVelocity,
-    y: (ship.y + ship.yVelocity + universe.height) % universe.height,
-    x: (ship.x + ship.xVelocity + universe.width) % universe.width,
-  };
+function updateScene(path, fn, scn) {
+  return fp.set(path, fn(fp.get(path, scn)), scn);
 }
 
 function makeKeyState() {
@@ -206,7 +166,11 @@ function main() {
   // The application will create a renderer using WebGL, if possible,
   // with a fallback to a canvas render. It will also setup the ticker
   // and the root stage PIXI.Container
-  const app = new PIXI.Application({ backgroundColor: 0xffffff, ...viewport });
+  const app = new PIXI.Application({
+    backgroundColor: 0xffffff,
+    ...viewport,
+    resolution: 1,
+  });
 
   let text = new PIXI.Text('This is a pixi text', {
     fontFamily: 'Arial',
@@ -219,11 +183,11 @@ function main() {
   // can then insert into the DOM
   document.body.appendChild(app.view);
 
-  let scene = makeScene();
+  let scn = makeScene();
   const keyState = makeKeyState();
   // load the texture we need
-  const loader = new PIXI.Loader();
-  loader
+  //const loader = new PIXI.Loader();
+  app.loader
     .add('ship', 'assets/ship-color.png')
     .add('enemy', 'assets/ship-enemy.png')
     .load((loader, resources) => {
@@ -252,40 +216,33 @@ function main() {
       app.ticker.add(delta => {
         // each frame we spin the ship around a bit
         //      ship.rotation += 0.01;
-        play();
+        play(delta);
       });
 
-      const moveShip_ = _.partial(moveShip, scene.universe);
-
-      function play() {
-        const shipUpdates = [
-          keyState.left.isDown && (ship => rotateShip(ship, -1)),
-          keyState.right.isDown && (ship => rotateShip(ship, 1)),
-          keyState.thrust.isDown && thrustShip,
-          moveShip_,
-        ];
+      function play(frameDelta) {
+        const deltaSeconds = (1 / app.ticker.FPS) * frameDelta;
 
         //Use the ship's velocity to make it move
-        scene = updateScene(
+        scn = updateScene(
           'ship',
-          fp.flow(fp.filter(fp.identity, shipUpdates)),
-          scene,
+          scene.updateShip(keyState, deltaSeconds, scn.universe),
+          scn,
         );
 
-        let enemyOffsetX = scene.enemy.x - scene.ship.x;
+        let enemyOffsetX = scn.enemy.x - scn.ship.x;
         let enemyDistanceX = Math.abs(enemyOffsetX);
-        if (enemyDistanceX > scene.universe.width / 2) {
+        if (enemyDistanceX > scn.universe.width / 2) {
           // shorter distance
-          enemyDistanceX = scene.universe.width - enemyDistanceX;
+          enemyDistanceX = scn.universe.width - enemyDistanceX;
           enemyOffsetX = enemyOffsetX > 0 ? 0 - enemyDistanceX : enemyDistanceX;
         }
 
-        let enemyOffsetY = scene.enemy.y - scene.ship.y;
+        let enemyOffsetY = scn.enemy.y - scn.ship.y;
         let enemyDistanceY = Math.abs(enemyOffsetY);
-        let centerY = scene.ship.y;
-        if (enemyDistanceY > scene.universe.height / 2) {
+        let centerY = scn.ship.y;
+        if (enemyDistanceY > scn.universe.height / 2) {
           // shorter distance
-          enemyDistanceY = scene.universe.height - enemyDistanceY;
+          enemyDistanceY = scn.universe.height - enemyDistanceY;
           enemyOffsetY = enemyOffsetY > 0 ? 0 - enemyDistanceY : enemyDistanceY;
         }
 
@@ -302,9 +259,9 @@ function main() {
         enemy.y = enemyOffsetY * scale + viewport.height / 2;
 
         background.tilePosition.x =
-          background.tilePosition.x - scene.ship.xVelocity;
+          background.tilePosition.x - scn.ship.xVelocity * 0.1;
         background.tilePosition.y =
-          background.tilePosition.y - scene.ship.yVelocity;
+          background.tilePosition.y - scn.ship.yVelocity * 0.1;
 
         background.tileScale.x = 1.5;
         background.tileScale.y = 1.5;
@@ -314,22 +271,24 @@ function main() {
         ship.scale.y = 0.5 * scale;
 
         // if (Math.abs(
-        //   ((scene.ship.x - scene.enemy.x) < viewport.width / 2)
-        //     || ((scene.ship.y - scene.enemy.y) < viewport.height / 2))) {
+        //   ((scn.ship.x - scn.enemy.x) < viewport.width / 2)
+        //     || ((scn.ship.y - scn.enemy.y) < viewport.height / 2))) {
         // }
         // handleUniverseEdge(background, ship, 'x', 'width');
         // handleUniverseEdge(background, ship, 'y', 'height');
 
-        ship.rotation = scene.ship.rotation;
+        ship.rotation = scn.ship.rotation;
         text.text = `rot: ${util.round(
-          scene.ship.rotation,
+          scn.ship.rotation,
           2,
-        )}, xVel:${util.round(scene.ship.xVelocity, 2)}, yVel:${util.round(
-          scene.ship.yVelocity,
+        )}, xVel:${util.round(scn.ship.xVelocity, 2)}, yVel:${util.round(
+          scn.ship.yVelocity,
           2,
-        )}, x:${util.round(scene.ship.x, 0)}, y:${util.round(scene.ship.y, 0)}
+        )}, x:${util.round(scn.ship.x, 0)}, y:${util.round(
+          scn.ship.y,
+          0,
+        )}, delta: ${deltaSeconds}}
 `;
-        //      console.log(sceneState.ship.yVelocity);
       }
     });
 }
