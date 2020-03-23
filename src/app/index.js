@@ -1,14 +1,12 @@
-/**
- * Application entry point
- */
-
 // Load application styles
-import 'styles/index.scss';
 import fp from 'lodash/fp';
 import * as PIXI from 'pixi.js';
 import * as util from './util';
 import * as scene from './scene';
 import * as projectionLib from './projection';
+import shipImg from '../assets/ship-color.png';
+import enemyImg from '../assets/ship-enemy.png';
+import spaceBackground from '../assets/space.png';
 
 function keyboard(keyCode) {
   let key = {};
@@ -18,7 +16,7 @@ function keyboard(keyCode) {
   key.press = undefined;
   key.release = undefined;
   //The `downHandler`
-  key.downHandler = event => {
+  key.downHandler = (event) => {
     if (event.keyCode === key.code) {
       if (key.isUp && key.press) key.press();
       key.isDown = true;
@@ -28,7 +26,7 @@ function keyboard(keyCode) {
   };
 
   //The `upHandler`
-  key.upHandler = event => {
+  key.upHandler = (event) => {
     if (event.keyCode === key.code) {
       if (key.isDown && key.release) key.release();
       key.isDown = false;
@@ -44,7 +42,7 @@ function keyboard(keyCode) {
 }
 
 const viewport = {
-  width: 1200,
+  width: 900,
   height: 900,
 };
 
@@ -122,7 +120,7 @@ function makeKeyState() {
 }
 
 function makeBackground({ width, height }) {
-  const texture = PIXI.Texture.from('assets/space.png');
+  const texture = PIXI.Texture.from(spaceBackground);
   const bg = new PIXI.TilingSprite(texture, width, height);
   bg.tilePosition.x = 0;
   bg.tilePosition.y = 0;
@@ -146,7 +144,7 @@ function makeBackground({ width, height }) {
   // return gfx;
 }
 
-function main() {
+export const makeGameApp = () => {
   // The application will create a renderer using WebGL, if possible,
   // with a fallback to a canvas render. It will also setup the ticker
   // and the root stage PIXI.Container
@@ -163,17 +161,13 @@ function main() {
     align: 'center',
   });
 
-  // The application will create a canvas element for you that you
-  // can then insert into the DOM
-  document.body.appendChild(app.view);
-
   let scn = makeScene();
   const keyState = makeKeyState();
   // load the texture we need
   //const loader = new PIXI.Loader();
   app.loader
-    .add('ship', 'assets/ship-color.png')
-    .add('enemy', 'assets/ship-enemy.png')
+    .add('ship', shipImg)
+    .add('enemy', enemyImg)
     .load((loader, resources) => {
       // This creates a texture from a 'bunny.png' image
       const ship = new PIXI.Sprite(resources.ship.texture);
@@ -197,7 +191,7 @@ function main() {
       app.stage.addChild(enemy);
       app.stage.addChild(text);
 
-      app.ticker.add(delta => {
+      app.ticker.add((delta) => {
         // each frame we spin the ship around a bit
         //      ship.rotation += 0.01;
         play(delta);
@@ -251,9 +245,9 @@ function main() {
 `;
       }
     });
-}
 
-window.onload = main;
+  return app;
+};
 
 // ================================
 // START YOUR APP HERE
