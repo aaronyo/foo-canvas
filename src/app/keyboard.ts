@@ -68,3 +68,5 @@ export const makeKeyState = () => {
 
   return state;
 };
+
+export type KeyState = ReturnType<typeof makeKeyState>;

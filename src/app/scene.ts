@@ -1,15 +1,16 @@
 import fp from 'lodash/fp';
 
 import { Dimension } from './geometry';
+import { KeyState } from './keyboard';
 
-const ACCELERATION = 30;
-const MAX_VELOCITY = 20;
+const ACCELERATION = 0.02;
+const MAX_VELOCITY = 0.01;
 const REVS_PER_SECOND = 0.5;
 
-export const initScene = (viewport: Dimension, minZoom: number) => {
+export const initScene = () => {
   const universe = {
-    width: viewport.width / minZoom,
-    height: viewport.height / minZoom,
+    width: 9,
+    height: 6,
   };
 
   return {
@@ -18,13 +19,17 @@ export const initScene = (viewport: Dimension, minZoom: number) => {
     ship: {
       x: universe.width / 2,
       y: universe.height / 2,
+      width: 0.15,
+      height: 0.15,
       yVelocity: 0,
       xVelocity: 0,
       rotation: 0,
     },
     enemy: {
-      x: 1000,
-      y: 1000,
+      x: 4.5,
+      y: 3,
+      width: 0.15,
+      height: 0.15,
     },
   };
 };
@@ -73,7 +78,7 @@ function moveShip(bounds: Dimension, ship: Ship) {
 }
 
 export const updateShip = (
-  keyState,
+  keyState: KeyState,
   deltaSeconds: number,
   bounds: Dimension,
 ) => {

@@ -10,20 +10,11 @@ import * as projectionLib from './projection';
 import * as scene from './scene';
 import * as util from './util';
 
-const vpWidth = 900;
-const vpHeight = 900;
-const viewport = {
-  width: vpWidth,
-  height: vpHeight,
-  center: {
-    x: vpWidth / 2,
-    y: vpHeight / 2,
-  },
-};
+const VIEWPORT_WIDTH = 1200;
 
-const minZoom = 0.3;
-const maxZoom = 0.7;
-const zoomMargin = 500;
+const minZoom = 1;
+const maxZoom = 4;
+const zoomMargin = 350;
 
 function updateScene(
   path: string[],
@@ -34,6 +25,7 @@ function updateScene(
 }
 
 function makeBackground({ width, height }) {
+  console.log('background', width, height);
   const texture = PIXI.Texture.from(spaceBackground);
   const bg = new PIXI.TilingSprite(texture, width, height);
   bg.tilePosition.x = 0;
@@ -62,9 +54,20 @@ export const makeGameApp = () => {
   // The application will create a renderer using WebGL, if possible,
   // with a fallback to a canvas render. It will also setup the ticker
   // and the root stage PIXI.Container
+
+  let scn = scene.initScene();
+
+  const projection = projectionLib.configure({
+    minZoom,
+    maxZoom,
+    zoomMargin,
+    universeDims: scn.universe,
+    viewportWidth: VIEWPORT_WIDTH,
+  });
+
   const app = new PIXI.Application({
     backgroundColor: 0xffffff,
-    ...viewport,
+    ...projection.viewport,
     resolution: 1,
   });
 
@@ -75,7 +78,6 @@ export const makeGameApp = () => {
     align: 'center',
   });
 
-  let scn = scene.initScene(viewport, minZoom);
   const keyState = makeKeyState();
   // load the texture we need
   //const loader = new PIXI.Loader();
@@ -88,28 +90,23 @@ export const makeGameApp = () => {
       const enemy = new PIXI.Sprite(resources.enemy.texture);
 
       // Rotate around the center
-      ship.scale.x = 0.5;
-      ship.scale.y = 0.5;
+      ship.width = scn.ship.width * projection.scale;
+      ship.height = scn.ship.height * projection.scale;
+      console.log('SHIP', ship.width, projection.scale, scn.ship.width);
       ship.anchor.x = 0.5;
       ship.anchor.y = 0.75;
-      ship.x = viewport.center.x;
-      ship.y = viewport.center.y;
-      enemy.scale.x = 0.5;
-      enemy.scale.y = 0.5;
+      ship.x = projection.viewport.center.x;
+      ship.y = projection.viewport.center.y;
+      enemy.width = scn.enemy.width * projection.scale;
+      enemy.height = scn.enemy.height * projection.scale;
       enemy.anchor.x = 0.5;
-      enemy.anchor.y = 0.25;
+      enemy.anchor.y = 0.5;
       // Add the ship to the scene we are building
-      const background = makeBackground(viewport);
+      const background = makeBackground(projection.viewport);
       app.stage.addChild(background);
       app.stage.addChild(ship);
       app.stage.addChild(enemy);
       app.stage.addChild(text);
-
-      const projection = projectionLib.configure({
-        minZoom,
-        maxZoom,
-        zoomMargin,
-      });
 
       function play(frameDelta: number) {
         const deltaSeconds = (1 / app.ticker.FPS) * frameDelta;
@@ -122,22 +119,26 @@ export const makeGameApp = () => {
         );
 
         const enemyDelta = scene.enemyDelta(scn.universe, scn.ship, scn.enemy);
-        const zoom = projection.zoom(viewport, enemyDelta);
+        const zoom = projection.zoom(enemyDelta);
 
-        enemy.x = enemyDelta.x * zoom + viewport.width / 2;
-        enemy.y = enemyDelta.y * zoom + viewport.height / 2;
+        enemy.x =
+          enemyDelta.x * projection.scale * zoom + projection.viewport.center.x;
+        enemy.y =
+          enemyDelta.y * projection.scale * zoom + projection.viewport.center.y;
 
         background.tilePosition.x =
-          background.tilePosition.x - scn.ship.xVelocity * 0.1;
+          background.tilePosition.x -
+          scn.ship.xVelocity * 0.3 * projection.scale;
         background.tilePosition.y =
-          background.tilePosition.y - scn.ship.yVelocity * 0.1;
+          background.tilePosition.y -
+          scn.ship.yVelocity * 0.3 * projection.scale;
 
         background.tileScale.x = 1.5;
         background.tileScale.y = 1.5;
-        enemy.scale.x = 0.5 * zoom;
-        enemy.scale.y = 0.5 * zoom;
-        ship.scale.x = 0.5 * zoom;
-        ship.scale.y = 0.5 * zoom;
+        ship.width = scn.ship.width * projection.scale * zoom;
+        ship.height = scn.ship.height * projection.scale * zoom;
+        enemy.width = scn.enemy.width * projection.scale * zoom;
+        enemy.height = scn.enemy.height * projection.scale * zoom;
 
         ship.rotation = scn.ship.rotation;
         text.text = `rot: ${util.round(
@@ -146,10 +147,16 @@ export const makeGameApp = () => {
         )}, xVel:${util.round(scn.ship.xVelocity, 2)}, yVel:${util.round(
           scn.ship.yVelocity,
           2,
-        )}, x:${util.round(scn.ship.x, 0)}, y:${util.round(
+        )}, x:${util.round(scn.ship.x, 2)}, y:${util.round(
           scn.ship.y,
-          0,
-        )}, delta: ${util.round(deltaSeconds, 4)}}
+          2,
+        )}, ex:${util.round(enemy.x, 2)}, ey:${util.round(
+          enemy.y,
+          2,
+        )}, scale: ${util.round(projection.scale, 2)}, zoom: ${util.round(
+          zoom,
+          2,
+        )}
 `;
       }
 
