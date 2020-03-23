@@ -1,0 +1,7 @@
+#! /bin/bash
+
+# This file cannot be replaced by a symlink to the node_modules executable
+# because eslint's then fails on module resolution.
+
+my_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+"$my_dir"/../node_modules/.bin/eslint "$@"
