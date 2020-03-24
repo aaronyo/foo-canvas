@@ -29,8 +29,6 @@ function makeBackground({ width, height }) {
   console.log('background', width, height);
   const texture = PIXI.Texture.from(spaceBackground);
   const bg = new PIXI.TilingSprite(texture, width, height);
-  bg.tilePosition.x = 0;
-  bg.tilePosition.y = 0;
   return bg;
 
   // const gfx = new PIXI.Graphics();
@@ -95,18 +93,42 @@ export const makeGameApp = () => {
       ship.pivot.y = (ship.height * 3) / 4;
       ship.width = scn.ship.width * projection.scale;
       ship.height = scn.ship.height * projection.scale;
+      ship.position.x = 100;
+      ship.position.y = 100;
 
       enemy.pivot.x = enemy.width / 2;
       enemy.pivot.y = enemy.height / 2;
       enemy.width = scn.enemy.width * projection.scale;
       enemy.height = scn.enemy.height * projection.scale;
+      enemy.position.x = 100;
+      enemy.position.y = 100;
 
       const background = makeBackground(projection.viewport);
       app.stage.addChild(background);
-      app.stage.addChild(ship);
-      app.stage.addChild(enemy);
-      app.stage.addChild(text);
+      background.pivot.x = background.width / 2;
+      background.pivot.y = background.height / 2;
+      background.position.x = background.width / 2;
+      background.position.y = background.height / 2;
 
+      const actionPlane = new PIXI.Container();
+      app.stage.addChild(actionPlane);
+      actionPlane.addChild(ship);
+      actionPlane.addChild(enemy);
+      app.stage.addChild(text);
+      actionPlane.width = projection.viewport.width;
+      actionPlane.height = projection.viewport.width;
+      actionPlane.pivot.x = actionPlane.width / 2;
+      actionPlane.pivot.y = actionPlane.height / 2;
+      actionPlane.position.x = actionPlane.width / 2;
+      actionPlane.position.y = actionPlane.height / 2;
+      console.log(
+        'pivot 1',
+        actionPlane.pivot,
+        actionPlane.width,
+        projection.viewport.width,
+      );
+
+      let lastMidpoint: geometry.Point | null = null;
       function play(frameDelta: number) {
         const deltaSeconds = (1 / app.ticker.FPS) * frameDelta;
 
@@ -136,34 +158,18 @@ export const makeGameApp = () => {
           (scn.ship.y + yShift) * projection.scale -
           scn.fieldOfView * projection.viewport.height;
 
-        Object.assign(
-          enemy,
-          geometry.zoom(zoom, projection.viewport.center, enemy),
-        );
-        Object.assign(
-          ship,
-          geometry.zoom(zoom, projection.viewport.center, ship),
-        );
+        actionPlane.scale.x = zoom;
+        actionPlane.scale.y = zoom;
 
-        console.log({
-          midpoint,
-          xShift,
-          yShift,
-        });
+        const midpointShift = lastMidpoint
+          ? geometry.delta(lastMidpoint, midpoint)
+          : { x: 0, y: 0 };
+        lastMidpoint = midpoint;
+        background.tilePosition.x += midpointShift.x * projection.scale * 0.1;
+        background.tilePosition.y += midpointShift.y * projection.scale * 0.1;
 
-        background.tilePosition.x =
-          background.tilePosition.x -
-          scn.ship.xVelocity * 0.3 * projection.scale;
-        background.tilePosition.y =
-          background.tilePosition.y -
-          scn.ship.yVelocity * 0.3 * projection.scale;
-
-        background.scale.x = 1.5;
-        background.scale.y = 1.5;
-        ship.width = scn.ship.width * projection.scale * zoom;
-        ship.height = scn.ship.height * projection.scale * zoom;
-        enemy.width = scn.enemy.width * projection.scale * zoom;
-        enemy.height = scn.enemy.height * projection.scale * zoom;
+        background.scale.x = 0.75 + zoom * 0.25;
+        background.scale.y = 0.75 + zoom * 0.25;
 
         ship.rotation = scn.ship.rotation;
         text.text = `rot: ${util.round(
@@ -178,13 +184,10 @@ export const makeGameApp = () => {
         )}, ex:${util.round(enemy.x, 2)}, ey:${util.round(
           enemy.y,
           2,
-        )}, sx:${util.round(xShift, 2)}, sy:${util.round(
-          yShift,
-          2,
-        )}, scale: ${util.round(projection.scale, 2)}, zoom: ${util.round(
+        )}, mps: ${util.round(midpointShift.x, 2)}, zoom: ${util.round(
           zoom,
           2,
-        )}
+        )}, width: ${util.round(actionPlane.width, 2)}
 `;
       }
 

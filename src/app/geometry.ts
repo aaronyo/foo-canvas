@@ -27,3 +27,8 @@ export const zoom = (factor: number, origin: Point, subject: Point) => {
     y: zoomDimension(factor, origin.y, subject.y),
   };
 };
+
+export const delta = (a: Point, b: Point) => ({
+  x: a.x - b.x,
+  y: a.y - b.y,
+});
