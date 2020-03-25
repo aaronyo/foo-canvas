@@ -8,21 +8,22 @@ const MAX_VELOCITY = 0.01;
 const REVS_PER_SECOND = 0.5;
 
 export const initScene = () => {
-  const universe = {
-    width: 9,
-    height: 6,
-    center: {
-      x: 4.5,
-      y: 3,
-    },
-  };
+  const w = 16;
+  const h = 9;
 
   return {
-    universe,
+    universe: {
+      width: w,
+      height: h,
+      center: {
+        x: w / 2,
+        y: h / 2,
+      },
+    },
 
     ship: {
-      x: universe.center.x,
-      y: universe.center.y,
+      x: w / 2,
+      y: h / 2,
       width: 0.1,
       height: 0.1,
       yVelocity: 0,
@@ -31,8 +32,8 @@ export const initScene = () => {
     },
 
     enemy: {
-      x: universe.center.x,
-      y: universe.center.y,
+      x: w / 2,
+      y: h / 2,
       width: 0.1,
       height: 0.1,
     },

@@ -11,11 +11,10 @@ import * as projectionLib from './projection';
 import * as scene from './scene';
 import * as util from './util';
 
-const VIEWPORT_WIDTH = 240;
-const RESOLUTION = 4;
+const VIEWPORT_WIDTH = 320;
 
 const minZoom = 1;
-const maxZoom = 3;
+const maxZoom = 4;
 const zoomMargin = VIEWPORT_WIDTH / 2;
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
@@ -53,13 +52,16 @@ function makeBackground({ width, height }) {
   // return gfx;
 }
 
+const getPixelSize = () => {
+  return window.innerWidth / VIEWPORT_WIDTH;
+};
+
 export const makeGameApp = () => {
   // The application will create a renderer using WebGL, if possible,
   // with a fallback to a canvas render. It will also setup the ticker
   // and the root stage PIXI.Container
 
   let scn = scene.initScene();
-
   const projection = projectionLib.configure({
     minZoom,
     maxZoom,
@@ -68,11 +70,24 @@ export const makeGameApp = () => {
     viewportWidth: VIEWPORT_WIDTH,
   });
 
+  console.log('VIEWPORT', projection.viewport);
+  console.log('WINDOW', window.devicePixelRatio, window.innerWidth);
+
   const app = new PIXI.Application({
     backgroundColor: 0xffffff,
     ...projection.viewport,
-    resolution: RESOLUTION,
+    resolution: getPixelSize(),
   });
+
+  const resizePixels = () => {
+    const pixelSize = getPixelSize();
+    console.log('PS', pixelSize);
+    app.renderer.resolution = pixelSize;
+    app.renderer.resize(projection.viewport.width, projection.viewport.height);
+  };
+  resizePixels();
+
+  window.onresize = resizePixels;
 
   const text = new PIXI.Text('This is a pixi text', {
     fontFamily: 'Arial',
@@ -95,15 +110,15 @@ export const makeGameApp = () => {
       // Rotate around the center
       ship.pivot.x = ship.width / 2;
       ship.pivot.y = (ship.height * 3) / 4;
-      ship.scale.x = 0.25;
-      ship.scale.y = 0.25;
+      ship.scale.x = 1 / maxZoom;
+      ship.scale.y = 1 / maxZoom;
       ship.position.x = 100;
       ship.position.y = 100;
 
       enemy.pivot.x = enemy.width / 2;
       enemy.pivot.y = enemy.height / 2;
-      enemy.scale.x = 0.25;
-      enemy.scale.y = 0.25;
+      enemy.scale.x = 1 / maxZoom;
+      enemy.scale.y = 1 / maxZoom;
       enemy.position.x = 100;
       enemy.position.y = 100;
 
@@ -171,8 +186,8 @@ export const makeGameApp = () => {
           ? geometry.delta(lastMidpoint, midpoint)
           : { x: 0, y: 0 };
         lastMidpoint = midpoint;
-        background.tilePosition.x += midpointShift.x * projection.scale * 0.1;
-        background.tilePosition.y += midpointShift.y * projection.scale * 0.1;
+        background.tilePosition.x += midpointShift.x * projection.scale * 0.5;
+        background.tilePosition.y += midpointShift.y * projection.scale * 0.5;
 
         background.scale.x = 0.75 + zoom * 0.25;
         background.scale.y = 0.75 + zoom * 0.25;
