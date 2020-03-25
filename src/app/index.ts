@@ -2,8 +2,8 @@
 import fp from 'lodash/fp';
 import * as PIXI from 'pixi.js';
 
-import shipImg from '../assets/ship-color.png';
-import enemyImg from '../assets/ship-enemy.png';
+import enemyImg from '../assets/criss-cross.png';
+import shipImg from '../assets/ship2.png';
 import spaceBackground from '../assets/space.png';
 import * as geometry from './geometry';
 import { makeKeyState } from './keyboard';
@@ -11,11 +11,15 @@ import * as projectionLib from './projection';
 import * as scene from './scene';
 import * as util from './util';
 
-const VIEWPORT_WIDTH = 900;
+const VIEWPORT_WIDTH = 240;
+const RESOLUTION = 4;
 
 const minZoom = 1;
-const maxZoom = 4;
-const zoomMargin = 500;
+const maxZoom = 3;
+const zoomMargin = VIEWPORT_WIDTH / 2;
+
+PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
+PIXI.settings.ROUND_PIXELS = true;
 
 function updateScene(
   path: string[],
@@ -67,12 +71,12 @@ export const makeGameApp = () => {
   const app = new PIXI.Application({
     backgroundColor: 0xffffff,
     ...projection.viewport,
-    resolution: 1,
+    resolution: RESOLUTION,
   });
 
   const text = new PIXI.Text('This is a pixi text', {
     fontFamily: 'Arial',
-    fontSize: 16,
+    fontSize: 4,
     fill: 0xff1010,
     align: 'center',
   });
@@ -91,20 +95,22 @@ export const makeGameApp = () => {
       // Rotate around the center
       ship.pivot.x = ship.width / 2;
       ship.pivot.y = (ship.height * 3) / 4;
-      ship.width = scn.ship.width * projection.scale;
-      ship.height = scn.ship.height * projection.scale;
+      ship.scale.x = 0.25;
+      ship.scale.y = 0.25;
       ship.position.x = 100;
       ship.position.y = 100;
 
       enemy.pivot.x = enemy.width / 2;
       enemy.pivot.y = enemy.height / 2;
-      enemy.width = scn.enemy.width * projection.scale;
-      enemy.height = scn.enemy.height * projection.scale;
+      enemy.scale.x = 0.25;
+      enemy.scale.y = 0.25;
       enemy.position.x = 100;
       enemy.position.y = 100;
 
       const background = makeBackground(projection.viewport);
       app.stage.addChild(background);
+      // app.stage.scale.x = 3;
+      // app.stage.scale.y = 3;
       background.pivot.x = background.width / 2;
       background.pivot.y = background.height / 2;
       background.position.x = background.width / 2;
@@ -112,11 +118,11 @@ export const makeGameApp = () => {
 
       const actionPlane = new PIXI.Container();
       app.stage.addChild(actionPlane);
-      actionPlane.addChild(ship);
       actionPlane.addChild(enemy);
+      actionPlane.addChild(ship);
       app.stage.addChild(text);
       actionPlane.width = projection.viewport.width;
-      actionPlane.height = projection.viewport.width;
+      actionPlane.height = projection.viewport.height;
       actionPlane.pivot.x = actionPlane.width / 2;
       actionPlane.pivot.y = actionPlane.height / 2;
       actionPlane.position.x = actionPlane.width / 2;
@@ -187,8 +193,9 @@ export const makeGameApp = () => {
         )}, mps: ${util.round(midpointShift.x, 2)}, zoom: ${util.round(
           zoom,
           2,
-        )}, width: ${util.round(actionPlane.width, 2)}
-`;
+        )}, width: ${util.round(actionPlane.width, 2)}, pixR: ${
+          window.devicePixelRatio
+        }, win: ${window.innerWidth}`;
       }
 
       app.ticker.add((delta) => {

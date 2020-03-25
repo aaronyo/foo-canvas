@@ -10,10 +10,10 @@ const REVS_PER_SECOND = 0.5;
 export const initScene = () => {
   const universe = {
     width: 9,
-    height: 9,
+    height: 6,
     center: {
       x: 4.5,
-      y: 4.5,
+      y: 3,
     },
   };
 
