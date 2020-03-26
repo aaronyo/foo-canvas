@@ -3,6 +3,7 @@ import fp from 'lodash/fp';
 import * as PIXI from 'pixi.js';
 
 import enemyImg from '../assets/criss-cross.png';
+import shipSheetImg from '../assets/saucer-sheet.png';
 import shipImg from '../assets/ship2.png';
 import spaceBackground from '../assets/space.png';
 import * as geometry from './geometry';
@@ -11,7 +12,7 @@ import * as projectionLib from './projection';
 import * as scene from './scene';
 import * as util from './util';
 
-const VIEWPORT_WIDTH = 320;
+const VIEWPORT_WIDTH = 256;
 
 const minZoom = 1;
 const maxZoom = 4;
@@ -97,23 +98,32 @@ export const makeGameApp = () => {
   });
 
   const keyState = makeKeyState();
-  // load the texture we need
-  //const loader = new PIXI.Loader();
+
   app.loader
-    .add('ship', shipImg)
     .add('enemy', enemyImg)
+    .add('ship', shipImg)
     .load((_loader, resources) => {
-      // This creates a texture from a 'bunny.png' image
-      const ship = new PIXI.Sprite(resources.ship.texture);
+      const shipBaseTexture = PIXI.BaseTexture.from(shipSheetImg);
+      const shipTextures = fp.pipe(
+        fp.map(
+          (i: number) =>
+            new PIXI.Texture(
+              shipBaseTexture,
+              new PIXI.Rectangle((i % 4) * 17, Math.floor(i / 4) * 17, 17, 17),
+            ),
+        ),
+      )(fp.range(0, 16));
+      const ship = new PIXI.Sprite(shipTextures[0]);
       const enemy = new PIXI.Sprite(resources.enemy.texture);
 
       // Rotate around the center
       ship.pivot.x = ship.width / 2;
-      ship.pivot.y = (ship.height * 3) / 4;
+      ship.pivot.y = ship.height / 2;
       ship.scale.x = 1 / maxZoom;
       ship.scale.y = 1 / maxZoom;
       ship.position.x = 100;
       ship.position.y = 100;
+      ship.roundPixels = true;
 
       enemy.pivot.x = enemy.width / 2;
       enemy.pivot.y = enemy.height / 2;
@@ -160,6 +170,7 @@ export const makeGameApp = () => {
           scn,
         );
 
+        ship.texture = shipTextures[(16 - scn.ship.snappedRotation) % 16];
         const enemyDelta = scene.enemyDelta(scn.universe, scn.ship, scn.enemy);
         const midpoint = geometry.midpoint(scn.ship, scn.enemy);
         const xShift = scn.universe.center.x - midpoint.x;
@@ -192,11 +203,10 @@ export const makeGameApp = () => {
         background.scale.x = 0.75 + zoom * 0.25;
         background.scale.y = 0.75 + zoom * 0.25;
 
-        ship.rotation = scn.ship.rotation;
-        text.text = `rot: ${util.round(
-          scn.ship.rotation,
-          2,
-        )}, xVel:${util.round(scn.ship.xVelocity, 2)}, yVel:${util.round(
+        //      ship.rotation = scn.ship.rotation;
+        text.text = `rot: ${util.round(scn.ship.rotation, 2)}, srot:${
+          scn.ship.snappedRotation
+        }. xVel:${util.round(scn.ship.xVelocity, 2)}, yVel:${util.round(
           scn.ship.yVelocity,
           2,
         )}, x:${util.round(ship.x, 2)}, y:${util.round(

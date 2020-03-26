@@ -8,8 +8,8 @@ const MAX_VELOCITY = 0.01;
 const REVS_PER_SECOND = 0.5;
 
 export const initScene = () => {
-  const w = 16;
-  const h = 9;
+  const w = 9;
+  const h = 6;
 
   return {
     universe: {
@@ -29,6 +29,7 @@ export const initScene = () => {
       yVelocity: 0,
       xVelocity: 0,
       rotation: 0,
+      snappedRotation: 0,
     },
 
     enemy: {
@@ -48,9 +49,10 @@ type Ship = GameScene['ship'];
 type Enemy = GameScene['enemy'];
 
 function thrustShip(ship: Ship, deltaSeconds: number) {
+  const r = 2 * Math.PI * (ship.snappedRotation / 16);
   // Create a thrust vector
-  const thrustY = -Math.cos(ship.rotation) * ACCELERATION * deltaSeconds;
-  const thrustX = Math.sin(ship.rotation) * ACCELERATION * deltaSeconds;
+  const thrustY = -Math.cos(r) * ACCELERATION * deltaSeconds;
+  const thrustX = Math.sin(r) * ACCELERATION * deltaSeconds;
 
   // Calculate the new velocity vector by adding velocity + thrust vectors
   const yVel = ship.yVelocity + thrustY;
@@ -71,9 +73,12 @@ function thrustShip(ship: Ship, deltaSeconds: number) {
 
 function rotateShip(ship: Ship, dir: 1 | -1, deltaSeconds: number) {
   const rotationDelta = dir * 2 * Math.PI * REVS_PER_SECOND * deltaSeconds;
+  const rotation = (ship.rotation + rotationDelta) % (2 * Math.PI);
+  const snappedRotation = Math.floor((16 * rotation) / (2 * Math.PI)) % 16;
   return {
     ...ship,
-    rotation: (ship.rotation + rotationDelta) % (2 * Math.PI),
+    rotation,
+    snappedRotation,
   };
 }
 

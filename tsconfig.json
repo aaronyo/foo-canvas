@@ -6,7 +6,7 @@
     "outDir": "./lib/",
     "target": "es5",
     "sourceMap": true,
-    "allowJs": true,
+    "resolveJsonModule": true,
     "lib": [
       "es2017",
       "dom"
