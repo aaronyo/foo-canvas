@@ -120,8 +120,8 @@ export const makeGameApp = () => {
       const enemy = new PIXI.Sprite(resources.enemy.texture);
 
       // Rotate around the center
-      ship.pivot.x = ship.width / 2;
-      ship.pivot.y = ship.height / 2;
+      ship.pivot.x = Math.floor(ship.width / 2);
+      ship.pivot.y = Math.floor(ship.height / 2);
       ship.scale.x = 1 / maxZoom;
       ship.scale.y = 1 / maxZoom;
       ship.position.x = 100;
