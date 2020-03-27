@@ -19,7 +19,6 @@ const maxZoom = 3;
 const zoomMargin = VIEWPORT_WIDTH / 2;
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
-PIXI.settings.ROUND_PIXELS = true;
 
 function updateScene(
   path: string[],
@@ -116,6 +115,7 @@ export const makeGameApp = () => {
             ),
         ),
       )(fp.range(0, 16));
+      console.log('TEXT', shipTextures);
       const ship = new PIXI.Sprite(shipTextures[0]);
       const enemy = new PIXI.Sprite(resources.enemy.texture);
 
@@ -126,7 +126,6 @@ export const makeGameApp = () => {
       ship.scale.y = 1 / maxZoom;
       ship.position.x = 100;
       ship.position.y = 100;
-      ship.roundPixels = true;
 
       enemy.pivot.x = enemy.width / 2;
       enemy.pivot.y = enemy.height / 2;
