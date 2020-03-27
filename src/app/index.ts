@@ -12,10 +12,10 @@ import * as projectionLib from './projection';
 import * as scene from './scene';
 import * as util from './util';
 
-const VIEWPORT_WIDTH = 256;
+const VIEWPORT_WIDTH = 400;
 
 const minZoom = 1;
-const maxZoom = 4;
+const maxZoom = 3;
 const zoomMargin = VIEWPORT_WIDTH / 2;
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
@@ -77,22 +77,25 @@ export const makeGameApp = () => {
   const app = new PIXI.Application({
     backgroundColor: 0xffffff,
     ...projection.viewport,
-    resolution: getPixelSize(),
+    resolution: 1,
   });
 
-  const resizePixels = () => {
-    const pixelSize = getPixelSize();
-    console.log('PS', pixelSize);
-    app.renderer.resolution = pixelSize;
-    app.renderer.resize(projection.viewport.width, projection.viewport.height);
+  const resizeCanvas = () => {
+    app.view.style.width = window.innerWidth + 'px';
+    app.view.style.height = (window.innerWidth * 9) / 16 + 'px';
+    app.view.style.imageRendering = 'pixelated';
+    app.view.style.position = 'absolute';
+    app.view.style.top = '0px';
+    app.view.style.bottom = '0px';
+    app.view.style.margin = 'auto';
   };
-  resizePixels();
+  resizeCanvas();
 
-  window.onresize = resizePixels;
+  window.onresize = resizeCanvas;
 
   const text = new PIXI.Text('This is a pixi text', {
     fontFamily: 'Arial',
-    fontSize: 4,
+    fontSize: 10,
     fill: 0xff1010,
     align: 'center',
   });
