@@ -12,10 +12,10 @@ import * as projectionLib from './projection';
 import * as scene from './scene';
 import * as util from './util';
 
-const VIEWPORT_WIDTH = 400;
+const VIEWPORT_WIDTH = 320;
 
 const minZoom = 1;
-const maxZoom = 3;
+const maxZoom = 2.5;
 const zoomMargin = VIEWPORT_WIDTH / 2;
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
@@ -25,7 +25,8 @@ function updateScene(
   fn: (sceneItem: unknown) => unknown,
   scn: scene.GameScene,
 ) {
-  return fp.set(path, fn(fp.get(path, scn)), scn);
+  const original = fp.get(path, scn);
+  return fp.set(path, fn(original), scn);
 }
 
 function makeBackground({ width, height }) {
@@ -52,8 +53,8 @@ function makeBackground({ width, height }) {
   // return gfx;
 }
 
-const getPixelSize = () => {
-  return window.innerWidth / VIEWPORT_WIDTH;
+const createOrUpdateEmber = (c: PIXI.Container, ember: PIXI.DisplayObject) => {
+  c.addChild(ember);
 };
 
 export const makeGameApp = () => {
@@ -66,7 +67,8 @@ export const makeGameApp = () => {
     minZoom,
     maxZoom,
     zoomMargin,
-    universeDims: scn.universe,
+    universe: scn.universe,
+    fieldOfView: scn.fieldOfView,
     viewportWidth: VIEWPORT_WIDTH,
   });
 
@@ -136,36 +138,46 @@ export const makeGameApp = () => {
 
       const background = makeBackground(projection.viewport);
       app.stage.addChild(background);
-      // app.stage.scale.x = 3;
-      // app.stage.scale.y = 3;
       background.pivot.x = background.width / 2;
       background.pivot.y = background.height / 2;
       background.position.x = background.width / 2;
       background.position.y = background.height / 2;
 
       const actionPlane = new PIXI.Container();
+      const floatersPlane = new PIXI.Container();
       app.stage.addChild(actionPlane);
+      actionPlane.addChild(floatersPlane);
       actionPlane.addChild(enemy);
       actionPlane.addChild(ship);
       app.stage.addChild(text);
+
       actionPlane.width = projection.viewport.width;
       actionPlane.height = projection.viewport.height;
       actionPlane.pivot.x = actionPlane.width / 2;
       actionPlane.pivot.y = actionPlane.height / 2;
       actionPlane.position.x = actionPlane.width / 2;
       actionPlane.position.y = actionPlane.height / 2;
-      console.log(
-        'pivot 1',
-        actionPlane.pivot,
-        actionPlane.width,
-        projection.viewport.width,
+      floatersPlane.width = projection.viewport.width;
+      floatersPlane.height = projection.viewport.height;
+      floatersPlane.pivot.x = floatersPlane.width / 2;
+      floatersPlane.pivot.y = floatersPlane.height / 2;
+      floatersPlane.position.x = floatersPlane.width / 2;
+      floatersPlane.position.y = floatersPlane.height / 2;
+      console.log(actionPlane, floatersPlane);
+      let lastMidpoint: geometry.Point | null = null;
+
+      scn = updateScene(
+        ['ship'],
+        scene.deriveShipSize(ship, VIEWPORT_WIDTH),
+        scn,
       );
 
-      let lastMidpoint: geometry.Point | null = null;
+      console.log('scn', scn);
+      console.log('projection', projection);
+
       function play(frameDelta: number) {
         const deltaSeconds = (1 / app.ticker.FPS) * frameDelta;
 
-        //Use the ship's velocity to make it move
         scn = updateScene(
           ['ship'],
           scene.updateShip(keyState, deltaSeconds, scn.universe),
@@ -174,31 +186,40 @@ export const makeGameApp = () => {
 
         ship.texture = shipTextures[(16 - scn.ship.snappedRotation) % 16];
         const enemyDelta = scene.enemyDelta(scn.universe, scn.ship, scn.enemy);
-        const midpoint = geometry.midpoint(scn.ship, scn.enemy);
-        const xShift = scn.universe.center.x - midpoint.x;
-        const yShift = scn.universe.center.y - midpoint.y;
+        const focusPoint = geometry.midpoint(
+          scn.ship.position,
+          scn.enemy.position,
+        );
         const zoom = projection.zoomFactor(enemyDelta);
 
-        enemy.x =
-          (scn.enemy.x + xShift) * projection.scale -
-          scn.fieldOfView * projection.viewport.width;
-        enemy.y =
-          (scn.enemy.y + yShift) * projection.scale -
-          scn.fieldOfView * projection.viewport.height;
-        ship.x =
-          (scn.ship.x + xShift) * projection.scale -
-          scn.fieldOfView * projection.viewport.width;
-        ship.y =
-          (scn.ship.y + yShift) * projection.scale -
-          scn.fieldOfView * projection.viewport.height;
+        Object.assign(
+          enemy,
+          projection.projectPoint(focusPoint, scn.enemy.position),
+        );
+        Object.assign(
+          ship,
+          projection.projectPoint(focusPoint, scn.ship.position),
+        );
 
+        floatersPlane.removeChildren();
+        fp.map(
+          (e) =>
+            createOrUpdateEmber(
+              floatersPlane,
+              projection.thrustEmberGfx(focusPoint, e),
+            ),
+          scn.ship.thrustEmbers,
+        );
+
+        // floatersPlane.scale.x = zoom;
+        // floatersPlane.scale.y = zoom;
         actionPlane.scale.x = zoom;
         actionPlane.scale.y = zoom;
 
         const midpointShift = lastMidpoint
-          ? geometry.delta(lastMidpoint, midpoint)
+          ? geometry.delta(lastMidpoint, focusPoint)
           : { x: 0, y: 0 };
-        lastMidpoint = midpoint;
+        lastMidpoint = focusPoint;
         background.tilePosition.x += midpointShift.x * projection.scale * 0.5;
         background.tilePosition.y += midpointShift.y * projection.scale * 0.5;
 

@@ -1,15 +1,35 @@
 import fp from 'lodash/fp';
 
-import { Dimension } from './geometry';
+import { Dimensions, Point } from './geometry';
 import { KeyState } from './keyboard';
 
 const ACCELERATION = 0.01;
 const MAX_VELOCITY = 0.01;
 const REVS_PER_SECOND = 0.5;
+const SECONDS_BETWEEN_EMBERS = 0.1;
+
+const UNIVERSE_WIDTH = 9;
+const UNIVERSE_HEIGHT = 6;
+const FIELD_OF_VIEW = 1 / 2;
+
+const EMBER_LIFETIME_SECONDS = 1;
+
+export interface ThrustEmber {
+  key: number;
+  ageSeconds: number;
+  brightness: number;
+  position: { x: number; y: number };
+}
+
+export interface Universe {
+  width: number;
+  height: number;
+  center: Point;
+}
 
 export const initScene = () => {
-  const w = 9;
-  const h = 6;
+  const w = UNIVERSE_WIDTH;
+  const h = UNIVERSE_HEIGHT;
 
   return {
     universe: {
@@ -19,36 +39,71 @@ export const initScene = () => {
         x: w / 2,
         y: h / 2,
       },
-    },
+    } as Universe,
 
     ship: {
-      x: w / 2,
-      y: h / 2,
+      position: { x: w / 2, y: h / 2 },
       width: 0.1,
       height: 0.1,
       yVelocity: 0,
       xVelocity: 0,
       rotation: 0,
       snappedRotation: 0,
+      secondsUntilEmber: SECONDS_BETWEEN_EMBERS,
+      thrustEmbers: [] as ThrustEmber[],
     },
 
     enemy: {
-      x: w / 2,
-      y: h / 2,
+      position: { x: w / 2, y: h / 2 },
       width: 0.1,
       height: 0.1,
     },
 
-    fieldOfView: 1 / 2,
+    fieldOfView: FIELD_OF_VIEW,
   };
 };
 
 export type GameScene = ReturnType<typeof initScene>;
 
-type Ship = GameScene['ship'];
+export type Ship = GameScene['ship'];
 type Enemy = GameScene['enemy'];
 
-function thrustShip(ship: Ship, deltaSeconds: number) {
+const makeEmberFactory = () => {
+  const seq = 0;
+  const makeEmber = (ship: Ship) =>
+    ({
+      key: seq,
+      ageSeconds: 0,
+      brightness: 1,
+      position: {
+        x:
+          ship.position.x -
+          (Math.sin((ship.snappedRotation / 16) * 2 * Math.PI) * ship.height) /
+            8,
+        y:
+          ship.position.y +
+          (Math.cos((ship.snappedRotation / 16) * 2 * Math.PI) * ship.height) /
+            8,
+      },
+    } as ThrustEmber);
+
+  return {
+    makeEmber,
+  };
+};
+
+const emberFactory = makeEmberFactory();
+
+const thrustShip = (deltaSeconds: number) => (ship: Ship) => {
+  ship.secondsUntilEmber -= deltaSeconds;
+  const [thrustEmbers, secondsUntilEmber] =
+    ship.secondsUntilEmber < 0
+      ? [
+          fp.concat(ship.thrustEmbers, [emberFactory.makeEmber(ship)]),
+          SECONDS_BETWEEN_EMBERS,
+        ]
+      : [ship.thrustEmbers, ship.secondsUntilEmber - deltaSeconds];
+
   const r = 2 * Math.PI * (ship.snappedRotation / 16);
   // Create a thrust vector
   const thrustY = -Math.cos(r) * ACCELERATION * deltaSeconds;
@@ -66,54 +121,81 @@ function thrustShip(ship: Ship, deltaSeconds: number) {
   // Recalculte x and y velocity based on the capped total velocity
   return {
     ...ship,
-    yVelocity: (yVel / vel) * cappedVel,
-    xVelocity: (xVel / vel) * cappedVel,
+    thrustEmbers,
+    secondsUntilEmber,
+    yVelocity: ship.yVelocity = (yVel / vel) * cappedVel,
+    xVelocity: ship.xVelocity = (xVel / vel) * cappedVel,
   };
-}
+};
 
-function rotateShip(ship: Ship, dir: 1 | -1, deltaSeconds: number) {
+const stopThrust = (ship: Ship) => {
+  return {
+    ...ship,
+    secondsUntilEmber: SECONDS_BETWEEN_EMBERS,
+  };
+};
+
+const rotateShip = (dir: 1 | -1, deltaSeconds: number) => (ship: Ship) => {
   const rotationDelta = dir * 2 * Math.PI * REVS_PER_SECOND * deltaSeconds;
-  const rotation = (ship.rotation + rotationDelta) % (2 * Math.PI);
-  const snappedRotation = Math.floor((16 * rotation) / (2 * Math.PI)) % 16;
   return {
     ...ship,
-    rotation,
-    snappedRotation,
+    rotation: (ship.rotation + rotationDelta) % (2 * Math.PI),
+    snappedRotation: Math.floor((16 * ship.rotation) / (2 * Math.PI)) % 16,
   };
-}
+};
 
-function moveShip(bounds: Dimension, ship: Ship) {
+const moveShip = (bounds: Dimensions) => (ship: Ship) => {
   return {
     ...ship,
-    y: (ship.y + ship.yVelocity + bounds.height) % bounds.height,
-    x: (ship.x + ship.xVelocity + bounds.width) % bounds.width,
+    position: {
+      x: (ship.position.x + ship.xVelocity + bounds.width) % bounds.width,
+      y: (ship.position.y + ship.yVelocity + bounds.height) % bounds.height,
+    },
   };
-}
+};
+
+const ageEmbers = (deltaSeconds: number, lifetimeSeconds: number) => (
+  ship: Ship,
+) => {
+  const ds = deltaSeconds;
+  const ls = lifetimeSeconds;
+  const thrustEmbers = fp.pipe(
+    fp.map((ember: ThrustEmber) => ({
+      ...ember,
+      ageSeconds: ember.ageSeconds + ds,
+      brightness: (ls - ember.ageSeconds - deltaSeconds) / ls,
+    })),
+    fp.filter((ember) => ember.brightness > 0),
+  )(ship.thrustEmbers);
+  return {
+    ...ship,
+    thrustEmbers,
+  };
+};
 
 export const updateShip = (
   keyState: KeyState,
   deltaSeconds: number,
-  bounds: Dimension,
-) => {
-  const shipUpdates = [
-    keyState.left.isDown &&
-      ((ship: Ship) => rotateShip(ship, -1, deltaSeconds)),
-    keyState.right.isDown &&
-      ((ship: Ship) => rotateShip(ship, 1, deltaSeconds)),
-    keyState.thrust.isDown && ((ship: Ship) => thrustShip(ship, deltaSeconds)),
-    (ship: Ship) => moveShip(bounds, ship),
-  ];
-  return fp.flow(fp.filter(fp.identity, shipUpdates));
-};
-
+  bounds: Dimensions,
+) => (ship: Ship): Ship =>
+  fp.flow(
+    ageEmbers(deltaSeconds, EMBER_LIFETIME_SECONDS),
+    keyState.left.isDown
+      ? rotateShip(-1, deltaSeconds)
+      : keyState.right.isDown
+      ? rotateShip(1, deltaSeconds)
+      : fp.identity,
+    keyState.thrust.isDown ? thrustShip(deltaSeconds) : stopThrust,
+    moveShip(bounds),
+  )(ship);
 // With consideration for wrapping around the edges of the universe, determine
 // the minimum x and y deltas from the ship (origin) to the enemy
 export const enemyDelta = (
-  universeDims: Dimension,
+  universeDims: Dimensions,
   ship: Ship,
   enemy: Enemy,
 ) => {
-  let deltaX = enemy.x - ship.x;
+  let deltaX = enemy.position.x - ship.position.x;
   let distanceX = Math.abs(deltaX);
   if (distanceX > universeDims.width / 2) {
     // shorter distance
@@ -121,7 +203,7 @@ export const enemyDelta = (
     deltaX = deltaX > 0 ? 0 - distanceX : distanceX;
   }
 
-  let deltaY = enemy.y - ship.y;
+  let deltaY = enemy.position.y - ship.position.y;
   let distanceY = Math.abs(deltaY);
   if (distanceY > universeDims.height / 2) {
     // shorter distance
@@ -132,4 +214,13 @@ export const enemyDelta = (
     x: deltaX,
     y: deltaY,
   };
+};
+
+export const deriveShipSize = (shipSprite: Dimensions, vpWidth: number) => (
+  ship: Ship,
+) => {
+  ship.width =
+    ((shipSprite.width * UNIVERSE_WIDTH) / vpWidth) * (1 / FIELD_OF_VIEW);
+  ship.height = (ship.width * shipSprite.height) / shipSprite.width;
+  return ship;
 };

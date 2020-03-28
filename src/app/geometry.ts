@@ -1,4 +1,4 @@
-export interface Dimension {
+export interface Dimensions {
   width: number;
   height: number;
 }
@@ -15,7 +15,7 @@ export const midpoint = (a: Point, b: Point) => {
   };
 };
 
-const zoomDimension = (factor: number, origin: number, subject: number) => {
+const zoomDimensions = (factor: number, origin: number, subject: number) => {
   const delta = subject - origin;
   const scaled = factor * delta;
   return origin + scaled;
@@ -23,8 +23,8 @@ const zoomDimension = (factor: number, origin: number, subject: number) => {
 
 export const zoom = (factor: number, origin: Point, subject: Point) => {
   return {
-    x: zoomDimension(factor, origin.x, subject.x),
-    y: zoomDimension(factor, origin.y, subject.y),
+    x: zoomDimensions(factor, origin.x, subject.x),
+    y: zoomDimensions(factor, origin.y, subject.y),
   };
 };
 
