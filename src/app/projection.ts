@@ -1,14 +1,14 @@
 import fp from 'lodash/fp';
 import * as PIXI from 'pixi.js';
 
-import { midpoint, Point } from './geometry';
-import { enemyDelta, GameScene, Ship, ThrustEmber, Universe } from './scene';
+import { Dimensions, Point, toroidalDelta, toroidalMidpoint } from './geometry';
+import { GameScene, Ship, ThrustEmber } from './scene';
 
 interface Opts {
   maxZoom: number;
   minZoom: number;
   zoomMargin: number;
-  universe: Universe;
+  universeDims: Dimensions;
   fieldOfView: number;
   viewportWidth: number;
 }
@@ -24,13 +24,17 @@ export const configure = ({
   maxZoom,
   minZoom,
   zoomMargin,
-  universe,
+  universeDims,
   fieldOfView,
   viewportWidth,
 }: Opts) => {
-  const aspectRatio = universe.height / universe.width;
+  const aspectRatio = universeDims.height / universeDims.width;
   const viewportHeight = viewportWidth * aspectRatio;
-  const scale = (viewportWidth / universe.width) * 2;
+  const scale = (viewportWidth / universeDims.width) * 2;
+  const universeCenter = {
+    x: universeDims.width / 2,
+    y: universeDims.height / 2,
+  };
 
   const viewport = {
     width: viewportWidth,
@@ -43,7 +47,9 @@ export const configure = ({
 
   const zoomFactor = (enmyDelta: Point) => {
     const enemyDistance = Math.sqrt(
-      Math.pow(enmyDelta.x, 2) + Math.pow(enmyDelta.y, 2),
+      // Assume landscape viewport and make zoom boundary an oval
+      Math.pow(enmyDelta.x * Math.sqrt(aspectRatio), 2) +
+        Math.pow(enmyDelta.y, 2),
     );
 
     return Math.max(
@@ -52,16 +58,22 @@ export const configure = ({
     );
   };
 
-  const projectDim = (
-    viewportLength: number,
-    shiftDim: number,
-    subjectDim: number,
-  ) => (shiftDim + subjectDim) * scale - fieldOfView * viewportLength;
+  const projectDim = (viewportLength: number, dim: number) =>
+    dim * scale - fieldOfView * viewportLength;
 
-  const projectPoint = (focus: Point, subject: Point) => ({
-    x: projectDim(viewportWidth, universe.center.x - focus.x, subject.x),
-    y: projectDim(viewportHeight, universe.center.y - focus.y, subject.y),
-  });
+  const projectPoint = (focus: Point, subject: Point) => {
+    // Unwrap the point coordinates with respect to the focus so that projection
+    // is simple.
+    const focusDelta = toroidalDelta(universeDims, subject, focus);
+    subject = {
+      x: focus.x + focusDelta.x,
+      y: focus.y + focusDelta.y,
+    };
+    return {
+      x: projectDim(viewportWidth, universeCenter.x - focus.x + subject.x),
+      y: projectDim(viewportHeight, universeCenter.y - focus.y + subject.y),
+    };
+  };
 
   const makeThrustEmber = (focus: Point, ember: ThrustEmber) => {
     const rgb = [
@@ -69,7 +81,6 @@ export const configure = ({
       Math.floor(220 * (0.5 + ember.brightness * 0.5)),
       140,
     ];
-    console.log('EB', ember.brightness, rgb);
 
     const gfx = new PIXI.Graphics();
     gfx.name = 'thrust-ember-' + ember.key;
@@ -145,8 +156,16 @@ export const configure = ({
   };
 
   const cameraOrientation = (scn: GameScene) => {
-    const focus = midpoint(scn.player.position, scn.enemy.position);
-    const zoom = zoomFactor(enemyDelta(scn.universe, scn.player, scn.enemy));
+    const focus = toroidalMidpoint(
+      scn.dimensions,
+      scn.player.position,
+      scn.enemy.position,
+    );
+
+    const zoom = zoomFactor(
+      toroidalDelta(scn.dimensions, scn.player.position, scn.enemy.position),
+    );
+
     return {
       focus,
       zoom,

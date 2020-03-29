@@ -61,7 +61,7 @@ export const makeGameApp = () => {
     minZoom,
     maxZoom,
     zoomMargin,
-    universe: scn.universe,
+    universeDims: scn.dimensions,
     fieldOfView: scn.fieldOfView,
     viewportWidth: VIEWPORT_WIDTH,
   });
@@ -95,7 +95,7 @@ export const makeGameApp = () => {
     align: 'center',
   });
 
-  const shipKeyState = makeKeyState({
+  const playerKeyState = makeKeyState({
     leftCode: 37, // left arrow
     rightCode: 39, // right arrow
     thrustCode: 38, // up arrow
@@ -104,7 +104,7 @@ export const makeGameApp = () => {
   const enemyKeyState = makeKeyState({
     leftCode: 65, // a
     rightCode: 68, // d
-    thrustCode: 83, // s
+    thrustCode: 87, // s
   });
 
   app.loader.load(() => {
@@ -156,13 +156,13 @@ export const makeGameApp = () => {
 
       scn = updateScene(
         ['player'],
-        scene.updateShip(shipKeyState, deltaSeconds, scn.universe),
+        scene.updateShip(playerKeyState, deltaSeconds, scn.dimensions),
         scn,
       );
 
       scn = updateScene(
         ['enemy'],
-        scene.updateShip(enemyKeyState, deltaSeconds, scn.universe),
+        scene.updateShip(enemyKeyState, deltaSeconds, scn.dimensions),
         scn,
       );
 
@@ -175,7 +175,7 @@ export const makeGameApp = () => {
       actionPlane.scale.y = zoom;
 
       const midpointShift = lastMidpoint
-        ? geometry.delta(lastMidpoint, focus)
+        ? geometry.toroidalDelta(scn.dimensions, lastMidpoint, focus)
         : { x: 0, y: 0 };
       lastMidpoint = focus;
       background.tilePosition.x += midpointShift.x * projection.scale * 0.5;
@@ -185,9 +185,10 @@ export const makeGameApp = () => {
       background.scale.y = 0.75 + zoom * 0.25;
 
       //      ship.rotation = scn.player.rotation;
-      text.text = `rot: ${util.round(scn.player.rotation, 2)}, srot:${
-        scn.player.snappedRotation
-      }. xVel:${util.round(scn.player.xVelocity, 2)}, yVel:${util.round(
+      text.text = `rot: ${util.round(
+        scn.player.rotation,
+        2,
+      )}. xVel:${util.round(scn.player.xVelocity, 2)}, yVel:${util.round(
         scn.player.yVelocity,
         2,
       )}, x:${util.round(player.hull.x, 2)}, y:${util.round(

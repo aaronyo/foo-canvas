@@ -1,6 +1,6 @@
 import fp from 'lodash/fp';
 
-import { Dimensions, Point } from './geometry';
+import { Dimensions } from './geometry';
 import { KeyState } from './keyboard';
 
 const ACCELERATION = 0.01;
@@ -21,25 +21,20 @@ export interface ThrustEmber {
   position: { x: number; y: number };
 }
 
-export interface Universe {
-  width: number;
-  height: number;
-  center: Point;
-}
-
 export const initScene = () => {
   const w = UNIVERSE_WIDTH;
   const h = UNIVERSE_HEIGHT;
 
   return {
-    universe: {
+    dimensions: {
       width: w,
       height: h,
-      center: {
-        x: w / 2,
-        y: h / 2,
-      },
-    } as Universe,
+    },
+
+    center: {
+      x: w / 2,
+      y: h / 2,
+    },
 
     player: {
       position: { x: w / 2, y: h / 2 },
@@ -54,7 +49,7 @@ export const initScene = () => {
     },
 
     enemy: {
-      position: { x: w / 2, y: h / 2 },
+      position: { x: w / 2 + 1, y: h / 2 - 1 },
       width: 0,
       height: 0,
       yVelocity: 0,
@@ -181,7 +176,7 @@ const ageEmbers = (deltaSeconds: number, lifetimeSeconds: number) => (
 export const updateShip = (
   keyState: KeyState,
   deltaSeconds: number,
-  bounds: Dimensions,
+  dims: Dimensions,
 ) => (ship: Ship): Ship =>
   fp.flow(
     ageEmbers(deltaSeconds, EMBER_LIFETIME_SECONDS),
@@ -191,7 +186,7 @@ export const updateShip = (
       ? rotateShip(1, deltaSeconds)
       : fp.identity,
     keyState.thrust.isDown ? thrustShip(deltaSeconds) : stopThrust,
-    moveShip(bounds),
+    moveShip(dims),
   )(ship);
 // With consideration for wrapping around the edges of the universe, determine
 // the minimum x and y deltas from the ship (origin) to the enemy
