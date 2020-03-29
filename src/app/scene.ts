@@ -57,6 +57,12 @@ export const initScene = () => {
       position: { x: w / 2, y: h / 2 },
       width: 0.1,
       height: 0.1,
+      yVelocity: 0,
+      xVelocity: 0,
+      rotation: 0,
+      snappedRotation: 0,
+      secondsUntilEmber: SECONDS_BETWEEN_EMBERS,
+      thrustEmbers: [] as ThrustEmber[],
     },
 
     fieldOfView: FIELD_OF_VIEW,
