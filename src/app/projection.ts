@@ -145,8 +145,8 @@ export const configure = ({
   };
 
   const cameraOrientation = (scn: GameScene) => {
-    const focus = midpoint(scn.ship.position, scn.enemy.position);
-    const zoom = zoomFactor(enemyDelta(scn.universe, scn.ship, scn.enemy));
+    const focus = midpoint(scn.player.position, scn.enemy.position);
+    const zoom = zoomFactor(enemyDelta(scn.universe, scn.player, scn.enemy));
     return {
       focus,
       zoom,

@@ -95,14 +95,24 @@ export const makeGameApp = () => {
     align: 'center',
   });
 
-  const keyState = makeKeyState();
+  const shipKeyState = makeKeyState({
+    leftCode: 37, // left arrow
+    rightCode: 39, // right arrow
+    thrustCode: 38, // up arrow
+  });
+
+  const enemyKeyState = makeKeyState({
+    leftCode: 65, // a
+    rightCode: 68, // d
+    thrustCode: 83, // s
+  });
 
   app.loader.load(() => {
     const shipFactory = projection.shipFactory(shipSheetImg);
-    const ship = shipFactory.makeShip();
+    const player = shipFactory.makeShip();
     const enemy = shipFactory.makeShip();
     const colorMatrix = new PIXI.filters.ColorMatrixFilter();
-    enemy.container.filters = [colorMatrix];
+    enemy.hull.filters = [colorMatrix];
     colorMatrix.toBGR(false);
 
     const background = makeBackground(projection.viewport);
@@ -115,7 +125,7 @@ export const makeGameApp = () => {
     const actionPlane = new PIXI.Container();
     app.stage.addChild(actionPlane);
     actionPlane.addChild(enemy.container);
-    actionPlane.addChild(ship.container);
+    actionPlane.addChild(player.container);
     app.stage.addChild(text);
 
     actionPlane.width = projection.viewport.width;
@@ -127,8 +137,14 @@ export const makeGameApp = () => {
     let lastMidpoint: geometry.Point | null = null;
 
     scn = updateScene(
-      ['ship'],
-      scene.deriveShipSize(ship.hull, VIEWPORT_WIDTH),
+      ['player'],
+      scene.deriveShipSize(player.hull, VIEWPORT_WIDTH),
+      scn,
+    );
+
+    scn = updateScene(
+      ['enemy'],
+      scene.deriveShipSize(enemy.hull, VIEWPORT_WIDTH),
       scn,
     );
 
@@ -139,14 +155,20 @@ export const makeGameApp = () => {
       const deltaSeconds = (1 / app.ticker.FPS) * frameDelta;
 
       scn = updateScene(
-        ['ship'],
-        scene.updateShip(keyState, deltaSeconds, scn.universe),
+        ['player'],
+        scene.updateShip(shipKeyState, deltaSeconds, scn.universe),
+        scn,
+      );
+
+      scn = updateScene(
+        ['enemy'],
+        scene.updateShip(enemyKeyState, deltaSeconds, scn.universe),
         scn,
       );
 
       const { focus, zoom } = projection.cameraOrientation(scn);
 
-      projection.updateShip(scn.ship, focus, ship);
+      projection.updateShip(scn.player, focus, player);
       projection.updateShip(scn.enemy, focus, enemy);
 
       actionPlane.scale.x = zoom;
@@ -162,14 +184,14 @@ export const makeGameApp = () => {
       background.scale.x = 0.75 + zoom * 0.25;
       background.scale.y = 0.75 + zoom * 0.25;
 
-      //      ship.rotation = scn.ship.rotation;
-      text.text = `rot: ${util.round(scn.ship.rotation, 2)}, srot:${
-        scn.ship.snappedRotation
-      }. xVel:${util.round(scn.ship.xVelocity, 2)}, yVel:${util.round(
-        scn.ship.yVelocity,
+      //      ship.rotation = scn.player.rotation;
+      text.text = `rot: ${util.round(scn.player.rotation, 2)}, srot:${
+        scn.player.snappedRotation
+      }. xVel:${util.round(scn.player.xVelocity, 2)}, yVel:${util.round(
+        scn.player.yVelocity,
         2,
-      )}, x:${util.round(ship.hull.x, 2)}, y:${util.round(
-        ship.hull.y,
+      )}, x:${util.round(player.hull.x, 2)}, y:${util.round(
+        player.hull.y,
         2,
       )}, ex:${util.round(enemy.hull.x, 2)}, ey:${util.round(
         enemy.hull.y,
@@ -184,7 +206,7 @@ export const makeGameApp = () => {
 
     app.ticker.add((delta) => {
       // each frame we spin the ship around a bit
-      //      ship.rotation += 0.01;
+      //      player.rotation += 0.01;
       play(delta);
     });
   });

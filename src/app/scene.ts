@@ -41,10 +41,10 @@ export const initScene = () => {
       },
     } as Universe,
 
-    ship: {
+    player: {
       position: { x: w / 2, y: h / 2 },
-      width: 0.1,
-      height: 0.1,
+      width: 0,
+      height: 0,
       yVelocity: 0,
       xVelocity: 0,
       rotation: 0,
@@ -55,8 +55,8 @@ export const initScene = () => {
 
     enemy: {
       position: { x: w / 2, y: h / 2 },
-      width: 0.1,
-      height: 0.1,
+      width: 0,
+      height: 0,
       yVelocity: 0,
       xVelocity: 0,
       rotation: 0,
@@ -71,8 +71,7 @@ export const initScene = () => {
 
 export type GameScene = ReturnType<typeof initScene>;
 
-export type Ship = GameScene['ship'];
-type Enemy = GameScene['enemy'];
+export type Ship = GameScene['player'];
 
 const makeEmberFactory = () => {
   const seq = 0;
@@ -198,10 +197,10 @@ export const updateShip = (
 // the minimum x and y deltas from the ship (origin) to the enemy
 export const enemyDelta = (
   universeDims: Dimensions,
-  ship: Ship,
-  enemy: Enemy,
+  player: Ship,
+  enemy: Ship,
 ) => {
-  let deltaX = enemy.position.x - ship.position.x;
+  let deltaX = enemy.position.x - player.position.x;
   let distanceX = Math.abs(deltaX);
   if (distanceX > universeDims.width / 2) {
     // shorter distance
@@ -209,7 +208,7 @@ export const enemyDelta = (
     deltaX = deltaX > 0 ? 0 - distanceX : distanceX;
   }
 
-  let deltaY = enemy.position.y - ship.position.y;
+  let deltaY = enemy.position.y - player.position.y;
   let distanceY = Math.abs(deltaY);
   if (distanceY > universeDims.height / 2) {
     // shorter distance

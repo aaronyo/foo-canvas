@@ -29,15 +29,22 @@ const bindKey = (
   window.addEventListener('keyup', upHandler, false);
 };
 
-export const makeKeyState = () => {
+export const makeKeyState = ({
+  leftCode,
+  rightCode,
+  thrustCode,
+}: {
+  leftCode: number;
+  rightCode: number;
+  thrustCode: number;
+}) => {
   const state = {
     left: { isDown: false },
     right: { isDown: false },
     thrust: { isDown: false },
   };
 
-  // arrow up
-  bindKey(38, {
+  bindKey(thrustCode, {
     press: () => {
       state.thrust.isDown = true;
     },
@@ -46,8 +53,7 @@ export const makeKeyState = () => {
     },
   });
 
-  // arrow left
-  bindKey(37, {
+  bindKey(leftCode, {
     press: () => {
       state.left.isDown = true;
     },
@@ -56,8 +62,7 @@ export const makeKeyState = () => {
     },
   });
 
-  // arrow right
-  bindKey(39, {
+  bindKey(rightCode, {
     press: () => {
       state.right.isDown = true;
     },
