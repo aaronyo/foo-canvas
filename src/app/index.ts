@@ -166,6 +166,8 @@ export const makeGameApp = () => {
         scn,
       );
 
+      scn = scene.handleShipCollision(scn);
+
       const { focus, zoom } = projection.cameraOrientation(scn);
 
       projection.updateShip(scn.player, focus, player);
@@ -188,8 +190,8 @@ export const makeGameApp = () => {
       text.text = `rot: ${util.round(
         scn.player.rotation,
         2,
-      )}. xVel:${util.round(scn.player.xVelocity, 2)}, yVel:${util.round(
-        scn.player.yVelocity,
+      )}. xVel:${util.round(scn.player.vector.x, 2)}, yVel:${util.round(
+        scn.player.vector.y,
         2,
       )}, x:${util.round(player.hull.x, 2)}, y:${util.round(
         player.hull.y,

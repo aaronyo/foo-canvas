@@ -2,6 +2,7 @@ import fp from 'lodash/fp';
 
 import { Dimensions } from './geometry';
 import { KeyState } from './keyboard';
+import { circlesCollision, CircularBody, haveCirclesCollided } from './physics';
 
 const ACCELERATION = 0.01;
 const MAX_VELOCITY = 0.01;
@@ -38,10 +39,8 @@ export const initScene = () => {
 
     player: {
       position: { x: w / 2, y: h / 2 },
-      width: 0,
-      height: 0,
-      yVelocity: 0,
-      xVelocity: 0,
+      radius: 0,
+      vector: { x: 0, y: 0 },
       rotation: 0,
       snappedRotation: 0,
       secondsUntilEmber: SECONDS_BETWEEN_EMBERS,
@@ -50,10 +49,8 @@ export const initScene = () => {
 
     enemy: {
       position: { x: w / 2 + 1, y: h / 2 - 1 },
-      width: 0,
-      height: 0,
-      yVelocity: 0,
-      xVelocity: 0,
+      radius: 0,
+      vector: { x: 0, y: 0 },
       rotation: 0,
       snappedRotation: 0,
       secondsUntilEmber: SECONDS_BETWEEN_EMBERS,
@@ -78,11 +75,11 @@ const makeEmberFactory = () => {
       position: {
         x:
           ship.position.x -
-          (Math.sin((ship.snappedRotation / 16) * 2 * Math.PI) * ship.height) /
+          (Math.sin((ship.snappedRotation / 16) * 2 * Math.PI) * ship.radius) /
             8,
         y:
           ship.position.y +
-          (Math.cos((ship.snappedRotation / 16) * 2 * Math.PI) * ship.height) /
+          (Math.cos((ship.snappedRotation / 16) * 2 * Math.PI) * ship.radius) /
             8,
       },
     } as ThrustEmber);
@@ -109,22 +106,22 @@ const thrustShip = (deltaSeconds: number) => (ship: Ship) => {
   const thrustY = -Math.cos(r) * ACCELERATION * deltaSeconds;
   const thrustX = Math.sin(r) * ACCELERATION * deltaSeconds;
 
-  // Calculate the new velocity vector by adding velocity + thrust vectors
-  const yVel = ship.yVelocity + thrustY;
-  const xVel = ship.xVelocity + thrustX;
+  // Calculate the new vector vector by adding vector + thrust vectors
+  const yVel = ship.vector.y + thrustY;
+  const xVel = ship.vector.x + thrustX;
   const vel = Math.sqrt(Math.pow(yVel, 2) + Math.pow(xVel, 2));
 
-  // Cap the maximum velocity
+  // Cap the maximum vector
   const cappedVel =
     vel > 0 ? Math.min(vel, MAX_VELOCITY) : Math.max(vel, 0 - MAX_VELOCITY);
 
-  // Recalculte x and y velocity based on the capped total velocity
+  // Recalculte x and y vector based on the capped total vector
   return {
     ...ship,
     thrustEmbers,
     secondsUntilEmber,
-    yVelocity: ship.yVelocity = (yVel / vel) * cappedVel,
-    xVelocity: ship.xVelocity = (xVel / vel) * cappedVel,
+    yVelocity: ship.vector.y = (yVel / vel) * cappedVel,
+    xVelocity: ship.vector.x = (xVel / vel) * cappedVel,
   };
 };
 
@@ -148,8 +145,8 @@ const moveShip = (bounds: Dimensions) => (ship: Ship) => {
   return {
     ...ship,
     position: {
-      x: (ship.position.x + ship.xVelocity + bounds.width) % bounds.width,
-      y: (ship.position.y + ship.yVelocity + bounds.height) % bounds.height,
+      x: (ship.position.x + ship.vector.x + bounds.width) % bounds.width,
+      y: (ship.position.y + ship.vector.y + bounds.height) % bounds.height,
     },
   };
 };
@@ -219,8 +216,35 @@ export const enemyDelta = (
 export const deriveShipSize = (shipSprite: Dimensions, vpWidth: number) => (
   ship: Ship,
 ) => {
-  ship.width =
-    ((shipSprite.width * UNIVERSE_WIDTH) / vpWidth) * (1 / FIELD_OF_VIEW);
-  ship.height = (ship.width * shipSprite.height) / shipSprite.width;
-  return ship;
+  return {
+    ...ship,
+    radius:
+      ((shipSprite.width - 1) / 2) *
+      (UNIVERSE_WIDTH / (vpWidth / FIELD_OF_VIEW)),
+  };
+};
+
+const updateShipFromBody = (body: CircularBody, ship: Ship) => {
+  return {
+    ...ship,
+    ...body.circle,
+    vector: body.vector,
+  };
+};
+
+export const handleShipCollision = (scn: GameScene) => {
+  if (haveCirclesCollided(scn.dimensions, scn.player, scn.enemy)) {
+    const [playerBody, enemyBody] = circlesCollision(
+      scn.dimensions,
+      { circle: scn.player, vector: scn.player.vector, mass: 1 },
+      { circle: scn.enemy, vector: scn.enemy.vector, mass: 1 },
+    );
+    return {
+      ...scn,
+      player: updateShipFromBody(playerBody, scn.player),
+      enemy: updateShipFromBody(enemyBody, scn.enemy),
+    };
+  }
+
+  return scn;
 };

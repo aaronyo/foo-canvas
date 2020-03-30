@@ -8,6 +8,11 @@ export interface Point {
   y: number;
 }
 
+export interface Circle {
+  position: { x: number; y: number };
+  radius: number;
+}
+
 export const midpoint = (a: Point, b: Point) => {
   return {
     x: Math.abs((a.x - b.x) / 2) + Math.min(a.x, b.x),
