@@ -14,7 +14,7 @@
   "license": "MIT",
   "dependencies": {
     "assemble": "~0.3.11",
-    "grunt": "~0.4.0",
+    "grunt": "~1.5.3",
     "lodash": "^4.17.15",
     "pixi.js": "^5.2.1",
     "styles": "^0.2.1"
