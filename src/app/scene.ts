@@ -19,6 +19,7 @@ export interface ThrustEmber {
   key: number;
   ageSeconds: number;
   brightness: number;
+  radius: number;
   position: { x: number; y: number };
 }
 
@@ -41,14 +42,14 @@ export const initScene = () => {
       position: { x: w / 2, y: h / 2 },
       radius: 0,
       vector: { x: 0, y: 0 },
-      rotation: 0,
-      snappedRotation: 0,
+      rotation: Math.PI,
+      snappedRotation: 8,
       secondsUntilEmber: SECONDS_BETWEEN_EMBERS,
       thrustEmbers: [] as ThrustEmber[],
     },
 
     enemy: {
-      position: { x: w / 2 + 1, y: h / 2 - 1 },
+      position: { x: w / 2 + 0.5, y: h / 2 - 0.5 },
       radius: 0,
       vector: { x: 0, y: 0 },
       rotation: 0,
@@ -161,6 +162,7 @@ const ageEmbers = (deltaSeconds: number, lifetimeSeconds: number) => (
       ...ember,
       ageSeconds: ember.ageSeconds + ds,
       brightness: (ls - ember.ageSeconds - deltaSeconds) / ls,
+      radius: (ls - ember.ageSeconds - deltaSeconds) / ls,
     })),
     fp.filter((ember) => ember.brightness > 0),
   )(ship.thrustEmbers);

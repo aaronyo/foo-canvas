@@ -86,7 +86,7 @@ export const configure = ({
     gfx.name = 'thrust-ember-' + ember.key;
     gfx.beginFill(PIXI.utils.rgb2hex(rgb), Math.pow(ember.brightness, 2));
     gfx.lineStyle(0);
-    gfx.drawCircle(0, 0, 1 * ember.brightness);
+    gfx.drawCircle(0, 0, ember.radius);
     gfx.endFill();
     const emberPos = projectPoint(focus, ember.position);
     gfx.position.set(emberPos.x, emberPos.y);
