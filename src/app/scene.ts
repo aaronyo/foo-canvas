@@ -76,12 +76,10 @@ const makeEmberFactory = () => {
       position: {
         x:
           ship.position.x -
-          (Math.sin((ship.snappedRotation / 16) * 2 * Math.PI) * ship.radius) /
-            8,
+          Math.sin((ship.snappedRotation / 16) * 2 * Math.PI) * ship.radius,
         y:
           ship.position.y +
-          (Math.cos((ship.snappedRotation / 16) * 2 * Math.PI) * ship.radius) /
-            8,
+          Math.cos((ship.snappedRotation / 16) * 2 * Math.PI) * ship.radius,
       },
     } as ThrustEmber);
 
@@ -158,13 +156,16 @@ const ageEmbers = (deltaSeconds: number, lifetimeSeconds: number) => (
   const ds = deltaSeconds;
   const ls = lifetimeSeconds;
   const thrustEmbers = fp.pipe(
-    fp.map((ember: ThrustEmber) => ({
-      ...ember,
-      ageSeconds: ember.ageSeconds + ds,
-      brightness: (ls - ember.ageSeconds - deltaSeconds) / ls,
-      radius: (ls - ember.ageSeconds - deltaSeconds) / ls,
-    })),
-    fp.filter((ember) => ember.brightness > 0),
+    fp.map((ember: ThrustEmber) => {
+      const ageSeconds = ember.ageSeconds + ds;
+      return {
+        ...ember,
+        ageSeconds,
+        brightness: (ls - ageSeconds) / ls ** 1.2,
+        radius: (0.5 + ageSeconds) ** 2.5 / ls,
+      };
+    }),
+    fp.filter((ember) => ember.brightness > 0.01),
   )(ship.thrustEmbers);
   return {
     ...ship,

@@ -76,11 +76,7 @@ export const configure = ({
   };
 
   const makeThrustEmber = (focus: Point, ember: ThrustEmber) => {
-    const rgb = [
-      Math.floor(240),
-      Math.floor(220 * (0.5 + ember.brightness * 0.5)),
-      140,
-    ];
+    const rgb = [250, Math.floor(240 * (0.5 + ember.brightness * 0.5)), 140];
 
     const gfx = new PIXI.Graphics();
     gfx.name = 'thrust-ember-' + ember.key;
