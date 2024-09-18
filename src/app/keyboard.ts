@@ -33,16 +33,28 @@ export const makeKeyState = ({
   leftCode,
   rightCode,
   thrustCode,
+  shootCode,
 }: {
   leftCode: number;
   rightCode: number;
   thrustCode: number;
+  shootCode: number;
 }) => {
   const state = {
     left: { isDown: false },
     right: { isDown: false },
     thrust: { isDown: false },
+    shoot: { isDown: false },
   };
+
+  bindKey(shootCode, {
+    press: () => {
+      state.shoot.isDown = true;
+    },
+    release: () => {
+      state.shoot.isDown = false;
+    },
+  });
 
   bindKey(thrustCode, {
     press: () => {

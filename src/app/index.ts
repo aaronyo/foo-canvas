@@ -99,12 +99,15 @@ export const makeGameApp = () => {
     leftCode: 37, // left arrow
     rightCode: 39, // right arrow
     thrustCode: 38, // up arrow
+    // command key
+    shootCode: 188, // comma
   });
 
   const enemyKeyState = makeKeyState({
     leftCode: 65, // a
     rightCode: 68, // d
     thrustCode: 87, // s
+    shootCode: 192, // backtick
   });
 
   app.loader.load(() => {
