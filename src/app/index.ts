@@ -1,5 +1,5 @@
 // Load application styles
-import fp from 'lodash/fp';
+import * as _ from 'remeda';
 import * as PIXI from 'pixi.js';
 
 import shipSheetImg from '../assets/saucer-sheet.png';
@@ -17,15 +17,6 @@ const maxZoom = 2.5;
 const zoomMargin = VIEWPORT_WIDTH / 2;
 
 PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
-
-function updateScene(
-  path: string[],
-  fn: (sceneItem: unknown) => unknown,
-  scn: scene.GameScene,
-) {
-  const original = fp.get(path, scn);
-  return fp.set(path, fn(original), scn);
-}
 
 function makeBackground({ width, height }) {
   console.log('background', width, height);
@@ -139,16 +130,15 @@ export const makeGameApp = () => {
     actionPlane.position.y = actionPlane.height / 2;
     let lastMidpoint: geometry.Point | null = null;
 
-    scn = updateScene(
-      ['player'],
-      scene.deriveShipSize(player.hull, VIEWPORT_WIDTH),
+    scn = _.set(
       scn,
+      'player',
+      scene.deriveShipSize(player.hull, VIEWPORT_WIDTH)(scn.player),
     );
-
-    scn = updateScene(
-      ['enemy'],
-      scene.deriveShipSize(enemy.hull, VIEWPORT_WIDTH),
+    scn = _.set(
       scn,
+      'enemy',
+      scene.deriveShipSize(player.hull, VIEWPORT_WIDTH)(scn.enemy),
     );
 
     console.log('scn', scn);
@@ -157,16 +147,24 @@ export const makeGameApp = () => {
     function play(frameDelta: number) {
       const deltaSeconds = (1 / app.ticker.FPS) * frameDelta;
 
-      scn = updateScene(
-        ['player'],
-        scene.updateShip(playerKeyState, deltaSeconds, scn.dimensions),
+      scn = _.set(
         scn,
+        'player',
+        scene.updateShip(
+          playerKeyState,
+          deltaSeconds,
+          scn.dimensions,
+        )(scn.player),
       );
 
-      scn = updateScene(
-        ['enemy'],
-        scene.updateShip(enemyKeyState, deltaSeconds, scn.dimensions),
+      scn = _.set(
         scn,
+        'enemy',
+        scene.updateShip(
+          enemyKeyState,
+          deltaSeconds,
+          scn.dimensions,
+        )(scn.enemy),
       );
 
       scn = scene.handleShipCollision(scn);

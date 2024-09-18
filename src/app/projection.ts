@@ -1,4 +1,4 @@
-import fp from 'lodash/fp';
+import * as _ from 'remeda';
 import * as PIXI from 'pixi.js';
 
 import { Dimensions, Point, toroidalDelta, toroidalMidpoint } from './geometry';
@@ -93,8 +93,9 @@ export const configure = ({
     const baseTexture = PIXI.BaseTexture.from(spriteSheetPath);
     return {
       makeShip: () => {
-        const textures = fp.pipe(
-          fp.map(
+        const textures = _.pipe(
+          _.range(0, 16),
+          _.map(
             (i: number) =>
               new PIXI.Texture(
                 baseTexture,
@@ -106,7 +107,7 @@ export const configure = ({
                 ),
               ),
           ),
-        )(fp.range(0, 16));
+        );
         const container = new PIXI.Container();
         const embers = new PIXI.Container();
         const hull = new PIXI.Sprite(textures[0]);
@@ -145,9 +146,8 @@ export const configure = ({
       projectPoint(focus, scnShip.position),
     );
     projShip.embers.removeChildren();
-    fp.each(
-      (e) => projShip.embers.addChild(makeThrustEmber(focus, e)),
-      scnShip.thrustEmbers,
+    _.forEach(scnShip.thrustEmbers, (e) =>
+      projShip.embers.addChild(makeThrustEmber(focus, e)),
     );
   };
 

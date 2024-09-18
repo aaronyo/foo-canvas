@@ -1,4 +1,4 @@
-import fp from 'lodash/fp';
+import * as _ from 'remeda';
 
 import { Dimensions } from './geometry';
 import { KeyState } from './keyboard';
@@ -81,7 +81,7 @@ const makeEmberFactory = () => {
           ship.position.y +
           Math.cos((ship.snappedRotation / 16) * 2 * Math.PI) * ship.radius,
       },
-    } as ThrustEmber);
+    }) as ThrustEmber;
 
   return {
     makeEmber,
@@ -95,7 +95,7 @@ const thrustShip = (deltaSeconds: number) => (ship: Ship) => {
   const [thrustEmbers, secondsUntilEmber] =
     ship.secondsUntilEmber < 0
       ? [
-          fp.concat(ship.thrustEmbers, [emberFactory.makeEmber(ship)]),
+          _.concat(ship.thrustEmbers, [emberFactory.makeEmber(ship)]),
           SECONDS_BETWEEN_EMBERS,
         ]
       : [ship.thrustEmbers, ship.secondsUntilEmber - deltaSeconds];
@@ -119,8 +119,8 @@ const thrustShip = (deltaSeconds: number) => (ship: Ship) => {
     ...ship,
     thrustEmbers,
     secondsUntilEmber,
-    yVelocity: ship.vector.y = (yVel / vel) * cappedVel,
-    xVelocity: ship.vector.x = (xVel / vel) * cappedVel,
+    yVelocity: (ship.vector.y = (yVel / vel) * cappedVel),
+    xVelocity: (ship.vector.x = (xVel / vel) * cappedVel),
   };
 };
 
@@ -150,44 +150,43 @@ const moveShip = (bounds: Dimensions) => (ship: Ship) => {
   };
 };
 
-const ageEmbers = (deltaSeconds: number, lifetimeSeconds: number) => (
-  ship: Ship,
-) => {
-  const ds = deltaSeconds;
-  const ls = lifetimeSeconds;
-  const thrustEmbers = fp.pipe(
-    fp.map((ember: ThrustEmber) => {
-      const ageSeconds = ember.ageSeconds + ds;
-      return {
-        ...ember,
-        ageSeconds,
-        brightness: (ls - ageSeconds) / ls ** 1.2,
-        radius: (0.5 + ageSeconds) ** 2.5 / ls,
-      };
-    }),
-    fp.filter((ember) => ember.brightness > 0.01),
-  )(ship.thrustEmbers);
-  return {
-    ...ship,
-    thrustEmbers,
+const ageEmbers =
+  (deltaSeconds: number, lifetimeSeconds: number) => (ship: Ship) => {
+    const ds = deltaSeconds;
+    const ls = lifetimeSeconds;
+    const thrustEmbers = _.pipe(
+      ship.thrustEmbers,
+      _.map((ember: ThrustEmber) => {
+        const ageSeconds = ember.ageSeconds + ds;
+        return {
+          ...ember,
+          ageSeconds,
+          brightness: (ls - ageSeconds) / ls ** 1.2,
+          radius: (0.5 + ageSeconds) ** 2.5 / ls,
+        };
+      }),
+      _.filter((ember) => ember.brightness > 0.01),
+    );
+    return {
+      ...ship,
+      thrustEmbers,
+    };
   };
-};
 
-export const updateShip = (
-  keyState: KeyState,
-  deltaSeconds: number,
-  dims: Dimensions,
-) => (ship: Ship): Ship =>
-  fp.flow(
-    ageEmbers(deltaSeconds, EMBER_LIFETIME_SECONDS),
-    keyState.left.isDown
-      ? rotateShip(-1, deltaSeconds)
-      : keyState.right.isDown
-      ? rotateShip(1, deltaSeconds)
-      : fp.identity,
-    keyState.thrust.isDown ? thrustShip(deltaSeconds) : stopThrust,
-    moveShip(dims),
-  )(ship);
+export const updateShip =
+  (keyState: KeyState, deltaSeconds: number, dims: Dimensions) =>
+  (ship: Ship): Ship =>
+    _.pipe(
+      ship,
+      moveShip(dims),
+      keyState.left.isDown
+        ? rotateShip(-1, deltaSeconds)
+        : keyState.right.isDown
+          ? rotateShip(1, deltaSeconds)
+          : _.identity(),
+      keyState.thrust.isDown ? thrustShip(deltaSeconds) : stopThrust,
+      ageEmbers(deltaSeconds, EMBER_LIFETIME_SECONDS),
+    );
 // With consideration for wrapping around the edges of the universe, determine
 // the minimum x and y deltas from the ship (origin) to the enemy
 export const enemyDelta = (
@@ -216,16 +215,15 @@ export const enemyDelta = (
   };
 };
 
-export const deriveShipSize = (shipSprite: Dimensions, vpWidth: number) => (
-  ship: Ship,
-) => {
-  return {
-    ...ship,
-    radius:
-      ((shipSprite.width - 1) / 2) *
-      (UNIVERSE_WIDTH / (vpWidth / FIELD_OF_VIEW)),
+export const deriveShipSize =
+  (shipSprite: Dimensions, vpWidth: number) => (ship: Ship) => {
+    return {
+      ...ship,
+      radius:
+        ((shipSprite.width - 1) / 2) *
+        (UNIVERSE_WIDTH / (vpWidth / FIELD_OF_VIEW)),
+    };
   };
-};
 
 const updateShipFromBody = (body: CircularBody, ship: Ship) => {
   return {

@@ -8,7 +8,7 @@ log/
 dist/
 node_modules/
 bower_components/
-.cache/
+.parcel-cache/
 
 ## Files
 result.xml
